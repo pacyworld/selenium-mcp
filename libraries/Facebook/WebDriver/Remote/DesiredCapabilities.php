@@ -4,7 +4,6 @@ namespace Facebook\WebDriver\Remote;
 
 use Facebook\WebDriver\Chrome\ChromeOptions;
 use Facebook\WebDriver\Exception\UnsupportedOperationException;
-use Facebook\WebDriver\Firefox\FirefoxDriver;
 use Facebook\WebDriver\Firefox\FirefoxOptions;
 use Facebook\WebDriver\Firefox\FirefoxProfile;
 use Facebook\WebDriver\WebDriverCapabilities;
@@ -190,11 +189,11 @@ class DesiredCapabilities implements WebDriverCapabilities
                 $this->capabilities[FirefoxOptions::CAPABILITY]->toArray();
         }
 
-        if (isset($this->capabilities[FirefoxDriver::PROFILE]) &&
-            $this->capabilities[FirefoxDriver::PROFILE] instanceof FirefoxProfile
+        if (isset($this->capabilities['firefox_profile']) &&
+            $this->capabilities['firefox_profile'] instanceof FirefoxProfile
         ) {
-            $this->capabilities[FirefoxDriver::PROFILE] =
-                $this->capabilities[FirefoxDriver::PROFILE]->encode();
+            $this->capabilities['firefox_profile'] =
+                $this->capabilities['firefox_profile']->encode();
         }
 
         return $this->capabilities;
@@ -253,11 +252,11 @@ class DesiredCapabilities implements WebDriverCapabilities
         }
 
         // Convert Firefox profile
-        if (array_key_exists(FirefoxDriver::PROFILE, $ossCapabilities)) {
+        if (array_key_exists('firefox_profile', $ossCapabilities)) {
             // Convert profile only if not already set in moz:firefoxOptions
             if (!array_key_exists(FirefoxOptions::CAPABILITY, $ossCapabilities)
                 || !array_key_exists('profile', $ossCapabilities[FirefoxOptions::CAPABILITY])) {
-                $w3cCapabilities[FirefoxOptions::CAPABILITY]['profile'] = $ossCapabilities[FirefoxDriver::PROFILE];
+                $w3cCapabilities[FirefoxOptions::CAPABILITY]['profile'] = $ossCapabilities['firefox_profile'];
             }
         }
 
