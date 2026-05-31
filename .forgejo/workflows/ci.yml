@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  lint:
+    runs-on: freebsd
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP Lint
+        run: |
+          find . -name "*.php" -not -path "./libraries/Facebook/*" -exec php -l {} \;
+
+      - name: Verify MCP Initialize
+        run: |
+          echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"1.0"}}}' | \
+            SELENIUM_GRID_URL=http://localhost:4444 php bin/selenium-mcp | \
+            python3 -c "import json,sys; d=json.loads(sys.stdin.read()); assert d['result']['serverInfo']['name'] == 'Selenium MCP', 'init failed'; print('MCP init OK')"
