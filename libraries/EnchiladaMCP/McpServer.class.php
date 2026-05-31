@@ -178,6 +178,12 @@ class McpServer
 			];
 		}
 
+		// If the tool returns a pre-formatted MCP response (with 'content' key),
+		// pass it through directly. This supports image, binary, and mixed content.
+		if (is_array($result) && isset($result['content']) && is_array($result['content'])) {
+			return $result;
+		}
+
 		return [
 			'content' => [
 				[
