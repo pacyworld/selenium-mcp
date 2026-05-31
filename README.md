@@ -1,121 +1,143 @@
 # Selenium MCP Server
 
-PHP-based [Model Context Protocol](https://modelcontextprotocol.io/) server for browser automation via Selenium Grid. Drop-in replacement for `@angiejones/mcp-selenium`.
+A PHP [Model Context Protocol](https://modelcontextprotocol.io/) server for browser automation via Selenium Grid, built on the [Enchilada Framework](https://buenapp.org/enchilada). Drop-in replacement for `@angiejones/mcp-selenium`.
 
 ## Features
 
-- **18 tools** — full parity with the Node.js mcp-selenium server
-- **2 resources** — browser status + accessibility tree snapshot
-- **BiDi diagnostics** — console logs, JS errors, network activity via WebSocket
-- **No Node.js** — pure PHP, instant startup, no npx resolution delays
-- **Enchilada Framework 3.0** — consistent with Mail MCP, Forgejo MCP, OPNsense MCP
-- **php-webdriver** — battle-tested Selenium client library (vendored, no Composer)
-
-## Requirements
-
-- PHP 8.4+ with `ext-curl`, `ext-openssl`, `ext-mbstring`
-- Selenium Grid 4.x accessible over HTTP
+- **18 MCP tools** covering browser lifecycle, element interaction, navigation, cookies, windows, frames, alerts, and diagnostics
+- **2 resource templates** for accessibility tree snapshots and session status
+- **BiDi diagnostics** — real-time console logs, JS errors, and network activity via WebSocket
+- **PHAR deployable** — single-file distribution for easy installation
+- **No Node.js** — pure PHP, instant startup, no npx/npm resolution delays
+- **No Composer** — pure PHP with Enchilada Framework autoloading
 
 ## Quick Start
 
-```bash
-# Clone
+### 1. Download
+
+```sh
+curl -LO https://pacyworld.dev/pacyworld/selenium-mcp/releases/latest/download/selenium-mcp.phar
+chmod +x selenium-mcp.phar
+```
+
+Or clone and run from source:
+
+```sh
 git clone https://pacyworld.dev/pacyworld/selenium-mcp.git
 cd selenium-mcp
-
-# Configure
-cp config/instances.json.sample config/instances.json
-# Edit config/instances.json with your Grid URL
-
-# Run (stdio mode for MCP clients)
-php bin/selenium-mcp
+php bin/selenium-mcp --version
 ```
 
-## MCP Client Configuration
+### 2. Configure
 
-### Windsurf / VS Code
+Copy `config/instances.json.sample` to your config location and edit:
 
 ```json
 {
-  "selenium": {
-    "command": "php",
-    "args": [
-      "/path/to/selenium-mcp/bin/selenium-mcp",
-      "--config=/path/to/instances.json"
-    ]
-  }
-}
-```
-
-### Environment Variable (simple)
-
-```json
-{
-  "selenium": {
-    "command": "php",
-    "args": ["/path/to/selenium-mcp/bin/selenium-mcp"],
-    "env": {
-      "SELENIUM_GRID_URL": "http://localhost:4444"
+    "default": "grid",
+    "instances": {
+        "grid": {
+            "grid_url": "http://localhost:4444",
+            "default_browser": "firefox",
+            "headless": true,
+            "timeout": 30000
+        }
     }
-  }
 }
 ```
 
-## Configuration
-
-`instances.json` supports multiple named Grid instances:
+### 3. Add to your AI assistant
 
 ```json
 {
-  "default": "grid",
-  "instances": {
-    "grid": {
-      "grid_url": "http://selenium:4444",
-      "default_browser": "firefox",
-      "headless": true,
-      "timeout": 30000
+    "mcpServers": {
+        "selenium": {
+            "command": "php",
+            "args": ["/path/to/selenium-mcp.phar", "--config=/path/to/instances.json"]
+        }
     }
-  }
 }
 ```
+
+Or if running from source:
+
+```json
+{
+    "mcpServers": {
+        "selenium": {
+            "command": "php",
+            "args": ["/path/to/selenium-mcp/bin/selenium-mcp", "--config=/path/to/instances.json"]
+        }
+    }
+}
+```
+
+For single-grid setups, you can skip the config file entirely:
+
+```json
+{
+    "mcpServers": {
+        "selenium": {
+            "command": "php",
+            "args": ["/path/to/selenium-mcp/bin/selenium-mcp"],
+            "env": {
+                "SELENIUM_GRID_URL": "http://localhost:4444"
+            }
+        }
+    }
+}
+```
+
+Config file is auto-discovered from these locations (first found wins):
+1. `--config=` CLI argument
+2. `SELENIUM_MCP_CONFIG` environment variable
+3. `SELENIUM_GRID_URL` environment variable (creates a default instance)
+4. `config/instances.json` (relative to binary)
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `start_browser` | Launch browser (chrome/firefox/edge/safari, headless, custom args) |
-| `navigate` | Navigate to URL |
-| `interact` | Mouse actions: click, doubleclick, rightclick, hover |
-| `send_keys` | Type into element (clears first) |
-| `get_element_text` | Get text content of element |
-| `get_element_attribute` | Get attribute value |
-| `press_key` | Simulate keyboard key press |
-| `upload_file` | Upload file via input element |
-| `take_screenshot` | Capture page screenshot (PNG) |
-| `execute_script` | Execute JavaScript, return result |
-| `window` | Window/tab management (list, switch, close) |
-| `frame` | Frame switching (by locator, index, or default) |
-| `alert` | Alert/confirm/prompt handling |
-| `add_cookie` | Add cookie to session |
-| `get_cookies` | Get cookies (all or by name) |
-| `delete_cookie` | Delete cookies (specific or all) |
-| `close_session` | Close browser session |
-| `diagnostics` | Console logs, JS errors, network activity (BiDi) |
+### Browser Lifecycle
+`start_browser`, `close_session`, `navigate`, `take_screenshot`
+
+### Element Interaction
+`interact`, `send_keys`, `get_element_text`, `get_element_attribute`, `upload_file`
+
+### Keyboard & Script
+`press_key`, `execute_script`
+
+### Window, Frame & Alert
+`window`, `frame`, `alert`
+
+### Cookie Management
+`add_cookie`, `get_cookies`, `delete_cookie`
+
+### Diagnostics
+`diagnostics`
+
+See [docs/TOOLS.md](docs/TOOLS.md) for detailed per-tool documentation.
 
 ## Resources
 
 | URI | Description |
 |-----|-------------|
-| `accessibility://current` | Accessibility tree snapshot (compact JSON) |
-| `browser-status://current` | Current session status |
+| `accessibility://current` | Accessibility tree snapshot — compact, structured representation of interactive elements and text content |
+| `browser-status://current` | Current browser session status |
 
-## Libraries
+## Requirements
 
-- **EnchiladaMCP** — MCP protocol + stdio transport
-- **EnchiladaHTTP** — HTTP client
-- **EnchiladaWebSocket** — I/O-agnostic WebSocket client (RFC 6455)
-- **Facebook/WebDriver** — php-webdriver (remote Grid subset)
+- PHP 8.4+ with `curl`, `openssl`, and `mbstring` extensions
+- Selenium Grid 4.x accessible over HTTP
+
+## Building the PHAR
+
+```sh
+php -d phar.readonly=0 bin/build-phar.php
+```
 
 ## License
 
-BSD-2-Clause — The Daniel Morante Company, Inc.
+BSD 2-Clause — see [LICENSE](LICENSE).
+
+## Credits
+
+Built with the [Enchilada Framework](https://buenapp.org/enchilada) by [The Daniel Morante Company, Inc.](https://pacyworld.dev)
