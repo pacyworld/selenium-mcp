@@ -150,39 +150,24 @@ class SessionManager
 	 */
 	public function isBidiEnabled(): bool
 	{
-		if (!$this->hasSession()) {
-			return false;
-		}
-
-		$caps = $this->getDriver()->getCapabilities();
-		return (bool) ($caps->getCapability('se:bidiEnabled') ?? false);
+		return $this->getBidiUrl() !== null;
 	}
 
 	/**
 	 * Get the WebDriver session's BiDi WebSocket URL (if available).
+	 *
+	 * The Grid returns the webSocketUrl capability when BiDi is supported.
 	 */
 	public function getBidiUrl(): ?string
 	{
-		if (!$this->hasSession() || !$this->isBidiEnabled()) {
+		if (!$this->hasSession()) {
 			return null;
 		}
 
-		$driver = $this->getDriver();
-		$caps = $driver->getCapabilities();
-
-		// Check for explicit webSocketUrl first (direct driver connection)
+		$caps = $this->getDriver()->getCapabilities();
 		$wsUrl = $caps->getCapability('webSocketUrl');
-		if ($wsUrl) {
-			return $wsUrl;
-		}
 
-		// Construct Grid BiDi URL from session ID
-		$gridUrl = $this->getGridUrl();
-		$wsScheme = str_starts_with($gridUrl, 'https') ? 'wss' : 'ws';
-		$gridHost = parse_url($gridUrl, PHP_URL_HOST);
-		$gridPort = parse_url($gridUrl, PHP_URL_PORT) ?? (str_starts_with($gridUrl, 'https') ? 443 : 80);
-
-		return "{$wsScheme}://{$gridHost}:{$gridPort}/session/{$driver->getSessionID()}/se/bidi";
+		return $wsUrl ?: null;
 	}
 
 	private function buildCapabilities(string $browser, array $options): DesiredCapabilities
