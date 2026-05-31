@@ -9,6 +9,7 @@
  */
 
 use EnchiladaMCP\McpTool;
+use EnchiladaMCP\ToolResult;
 use Selenium\SessionManager;
 use Facebook\WebDriver\WebDriverBy;
 use Facebook\WebDriver\WebDriverExpectedCondition;
@@ -34,7 +35,7 @@ class WindowTools
 			'required' => ['action'],
 		]
 	)]
-	public function window(string $action, string $handle = ''): array
+	public function window(string $action, string $handle = ''): ToolResult
 	{
 		try {
 			$driver = $this->manager->getDriver();
@@ -44,14 +45,14 @@ class WindowTools
 					$handles = $driver->getWindowHandles();
 					$current = $driver->getWindowHandle();
 					$result = json_encode(['current' => $current, 'all' => $handles], JSON_PRETTY_PRINT);
-					return ['content' => [['type' => 'text', 'text' => $result]]];
+					return ToolResult::text($result);
 
 				case 'switch':
 					if (empty($handle)) {
 						throw new \RuntimeException('handle is required for switch action');
 					}
 					$driver->switchTo()->window($handle);
-					return ['content' => [['type' => 'text', 'text' => "Switched to window: {$handle}"]]];
+					return ToolResult::text("Switched to window: {$handle}");
 
 				case 'switch_latest':
 					$handles = $driver->getWindowHandles();
@@ -60,7 +61,7 @@ class WindowTools
 					}
 					$latest = end($handles);
 					$driver->switchTo()->window($latest);
-					return ['content' => [['type' => 'text', 'text' => "Switched to latest window: {$latest}"]]];
+					return ToolResult::text("Switched to latest window: {$latest}");
 
 				case 'close':
 					$driver->close();
@@ -72,16 +73,16 @@ class WindowTools
 					}
 					if (!empty($handles)) {
 						$driver->switchTo()->window($handles[0]);
-						return ['content' => [['type' => 'text', 'text' => "Window closed. Switched to: {$handles[0]}"]]];
+						return ToolResult::text("Window closed. Switched to: {$handles[0]}");
 					}
 					$this->manager->closeSession();
-					return ['content' => [['type' => 'text', 'text' => 'Last window closed. Session ended.']]];
+					return ToolResult::text('Last window closed. Session ended.');
 
 				default:
-					return ['content' => [['type' => 'text', 'text' => "Unknown action: {$action}"]], 'isError' => true];
+					return ToolResult::error("Unknown action: {$action}");
 			}
 		} catch (\Exception $e) {
-			return ['content' => [['type' => 'text', 'text' => "Error in window {$action}: {$e->getMessage()}"]], 'isError' => true];
+			return ToolResult::error("Error in window {$action}: {$e->getMessage()}");
 		}
 	}
 
@@ -100,14 +101,14 @@ class WindowTools
 			'required' => ['action'],
 		]
 	)]
-	public function frame(string $action, string $by = '', string $value = '', int $index = -1, int $timeout = 10000): array
+	public function frame(string $action, string $by = '', string $value = '', int $index = -1, int $timeout = 10000): ToolResult
 	{
 		try {
 			$driver = $this->manager->getDriver();
 
 			if ($action === 'default') {
 				$driver->switchTo()->defaultContent();
-				return ['content' => [['type' => 'text', 'text' => 'Switched to default content']]];
+				return ToolResult::text('Switched to default content');
 			}
 
 			// action === 'switch'
@@ -123,9 +124,9 @@ class WindowTools
 				throw new \RuntimeException('Provide either by/value to locate frame, or index to switch by position');
 			}
 
-			return ['content' => [['type' => 'text', 'text' => 'Switched to frame']]];
+			return ToolResult::text('Switched to frame');
 		} catch (\Exception $e) {
-			return ['content' => [['type' => 'text', 'text' => "Error in frame {$action}: {$e->getMessage()}"]], 'isError' => true];
+			return ToolResult::error("Error in frame {$action}: {$e->getMessage()}");
 		}
 	}
 
@@ -142,7 +143,7 @@ class WindowTools
 			'required' => ['action'],
 		]
 	)]
-	public function alert(string $action, string $text = '', int $timeout = 5000): array
+	public function alert(string $action, string $text = '', int $timeout = 5000): ToolResult
 	{
 		try {
 			$driver = $this->manager->getDriver();
@@ -154,15 +155,15 @@ class WindowTools
 			switch ($action) {
 				case 'accept':
 					$alert->accept();
-					return ['content' => [['type' => 'text', 'text' => 'Alert accepted']]];
+					return ToolResult::text('Alert accepted');
 
 				case 'dismiss':
 					$alert->dismiss();
-					return ['content' => [['type' => 'text', 'text' => 'Alert dismissed']]];
+					return ToolResult::text('Alert dismissed');
 
 				case 'get_text':
 					$alertText = $alert->getText();
-					return ['content' => [['type' => 'text', 'text' => $alertText]]];
+					return ToolResult::text($alertText);
 
 				case 'send_text':
 					if (empty($text)) {
@@ -170,13 +171,13 @@ class WindowTools
 					}
 					$alert->sendKeys($text);
 					$alert->accept();
-					return ['content' => [['type' => 'text', 'text' => "Text \"{$text}\" sent to prompt and accepted"]]];
+					return ToolResult::text("Text \"{$text}\" sent to prompt and accepted");
 
 				default:
-					return ['content' => [['type' => 'text', 'text' => "Unknown action: {$action}"]], 'isError' => true];
+					return ToolResult::error("Unknown action: {$action}");
 			}
 		} catch (\Exception $e) {
-			return ['content' => [['type' => 'text', 'text' => "Error in alert {$action}: {$e->getMessage()}"]], 'isError' => true];
+			return ToolResult::error("Error in alert {$action}: {$e->getMessage()}");
 		}
 	}
 

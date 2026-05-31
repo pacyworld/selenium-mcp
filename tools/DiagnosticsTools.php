@@ -9,6 +9,7 @@
  */
 
 use EnchiladaMCP\McpTool;
+use EnchiladaMCP\ToolResult;
 use Selenium\SessionManager;
 use Selenium\BiDiClient;
 
@@ -39,13 +40,13 @@ class DiagnosticsTools
 			'required' => ['type'],
 		]
 	)]
-	public function diagnostics(string $type, bool $clear = false): array
+	public function diagnostics(string $type, bool $clear = false): ToolResult
 	{
 		try {
 			$this->manager->getDriver(); // ensure session exists
 
 			if ($this->bidi === null || !$this->bidi->isConnected()) {
-				return ['content' => [['type' => 'text', 'text' => 'Diagnostics not available (BiDi not supported by this browser/driver)']]];
+				return ToolResult::text('Diagnostics not available (BiDi not supported by this browser/driver)');
 			}
 
 			$logs = $this->bidi->getLogs($type);
@@ -56,7 +57,7 @@ class DiagnosticsTools
 					'errors' => 'No page errors captured',
 					'network' => 'No network activity captured',
 				];
-				return ['content' => [['type' => 'text', 'text' => $emptyMessages[$type] ?? 'No data']]];
+				return ToolResult::text($emptyMessages[$type] ?? 'No data');
 			}
 
 			$result = json_encode($logs, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
@@ -65,9 +66,9 @@ class DiagnosticsTools
 				$this->bidi->clearLogs($type);
 			}
 
-			return ['content' => [['type' => 'text', 'text' => $result]]];
+			return ToolResult::text($result);
 		} catch (\Exception $e) {
-			return ['content' => [['type' => 'text', 'text' => "Error getting diagnostics: {$e->getMessage()}"]], 'isError' => true];
+			return ToolResult::error("Error getting diagnostics: {$e->getMessage()}");
 		}
 	}
 }

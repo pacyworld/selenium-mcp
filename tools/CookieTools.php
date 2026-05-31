@@ -9,6 +9,7 @@
  */
 
 use EnchiladaMCP\McpTool;
+use EnchiladaMCP\ToolResult;
 use Selenium\SessionManager;
 use Facebook\WebDriver\Cookie;
 
@@ -46,7 +47,7 @@ class CookieTools
 		bool $secure = false,
 		bool $httpOnly = false,
 		int $expiry = 0
-	): array {
+	): ToolResult {
 		try {
 			$driver = $this->manager->getDriver();
 
@@ -58,9 +59,9 @@ class CookieTools
 			if ($expiry > 0) $cookie->setExpiry($expiry);
 
 			$driver->manage()->addCookie($cookie);
-			return ['content' => [['type' => 'text', 'text' => "Cookie \"{$name}\" added"]]];
+			return ToolResult::text("Cookie \"{$name}\" added");
 		} catch (\Exception $e) {
-			return ['content' => [['type' => 'text', 'text' => "Error adding cookie: {$e->getMessage()}"]], 'isError' => true];
+			return ToolResult::error("Error adding cookie: {$e->getMessage()}");
 		}
 	}
 
@@ -74,7 +75,7 @@ class CookieTools
 			],
 		]
 	)]
-	public function get_cookies(string $name = ''): array
+	public function get_cookies(string $name = ''): ToolResult
 	{
 		try {
 			$driver = $this->manager->getDriver();
@@ -82,15 +83,15 @@ class CookieTools
 			if (!empty($name)) {
 				$cookie = $driver->manage()->getCookieNamed($name);
 				if ($cookie === null) {
-					return ['content' => [['type' => 'text', 'text' => "Cookie \"{$name}\" not found"]], 'isError' => true];
+					return ToolResult::error("Cookie \"{$name}\" not found");
 				}
-				return ['content' => [['type' => 'text', 'text' => json_encode($cookie, JSON_PRETTY_PRINT)]]];
+				return ToolResult::text(json_encode($cookie, JSON_PRETTY_PRINT));
 			}
 
 			$cookies = $driver->manage()->getCookies();
-			return ['content' => [['type' => 'text', 'text' => json_encode($cookies, JSON_PRETTY_PRINT)]]];
+			return ToolResult::text(json_encode($cookies, JSON_PRETTY_PRINT));
 		} catch (\Exception $e) {
-			return ['content' => [['type' => 'text', 'text' => "Error getting cookies: {$e->getMessage()}"]], 'isError' => true];
+			return ToolResult::error("Error getting cookies: {$e->getMessage()}");
 		}
 	}
 
@@ -104,20 +105,20 @@ class CookieTools
 			],
 		]
 	)]
-	public function delete_cookie(string $name = ''): array
+	public function delete_cookie(string $name = ''): ToolResult
 	{
 		try {
 			$driver = $this->manager->getDriver();
 
 			if (!empty($name)) {
 				$driver->manage()->deleteCookieNamed($name);
-				return ['content' => [['type' => 'text', 'text' => "Cookie \"{$name}\" deleted"]]];
+				return ToolResult::text("Cookie \"{$name}\" deleted");
 			}
 
 			$driver->manage()->deleteAllCookies();
-			return ['content' => [['type' => 'text', 'text' => 'All cookies deleted']]];
+			return ToolResult::text('All cookies deleted');
 		} catch (\Exception $e) {
-			return ['content' => [['type' => 'text', 'text' => "Error deleting cookie: {$e->getMessage()}"]], 'isError' => true];
+			return ToolResult::error("Error deleting cookie: {$e->getMessage()}");
 		}
 	}
 }

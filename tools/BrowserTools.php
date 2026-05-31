@@ -39,20 +39,19 @@ class BrowserTools
 			'required' => ['browser'],
 		]
 	)]
-	public function start_browser(string $browser, array $options = []): array
+	public function start_browser(string $browser, array $options = []): ToolResult
 	{
 		try {
 			$sessionId = $this->manager->createSession($browser, $options);
 			$message = "Browser started with session_id: {$sessionId}";
 
-			$bidiUrl = $this->manager->getBidiUrl();
-			if ($bidiUrl) {
+			if ($this->manager->isBidiEnabled()) {
 				$message .= ' (BiDi enabled: console logs, JS errors, and network activity are being captured)';
 			}
 
-			return ['content' => [['type' => 'text', 'text' => $message]]];
+			return ToolResult::text($message);
 		} catch (\Exception $e) {
-			return ['content' => [['type' => 'text', 'text' => "Error starting browser: {$e->getMessage()}"]], 'isError' => true];
+			return ToolResult::error("Error starting browser: {$e->getMessage()}");
 		}
 	}
 
@@ -67,14 +66,14 @@ class BrowserTools
 			'required' => ['url'],
 		]
 	)]
-	public function navigate(string $url): array
+	public function navigate(string $url): ToolResult
 	{
 		try {
 			$driver = $this->manager->getDriver();
 			$driver->get($url);
-			return ['content' => [['type' => 'text', 'text' => "Navigated to {$url}"]]];
+			return ToolResult::text("Navigated to {$url}");
 		} catch (\Exception $e) {
-			return ['content' => [['type' => 'text', 'text' => "Error navigating: {$e->getMessage()}"]], 'isError' => true];
+			return ToolResult::error("Error navigating: {$e->getMessage()}");
 		}
 	}
 
@@ -110,13 +109,13 @@ class BrowserTools
 		description: 'closes the current browser session',
 		inputSchema: ['type' => 'object']
 	)]
-	public function close_session(): array
+	public function close_session(): ToolResult
 	{
 		try {
 			$sessionId = $this->manager->closeSession();
-			return ['content' => [['type' => 'text', 'text' => "Browser session {$sessionId} closed"]]];
+			return ToolResult::text("Browser session {$sessionId} closed");
 		} catch (\Exception $e) {
-			return ['content' => [['type' => 'text', 'text' => "Error closing session: {$e->getMessage()}"]], 'isError' => true];
+			return ToolResult::error("Error closing session: {$e->getMessage()}");
 		}
 	}
 }

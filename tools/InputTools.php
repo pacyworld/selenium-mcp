@@ -9,6 +9,7 @@
  */
 
 use EnchiladaMCP\McpTool;
+use EnchiladaMCP\ToolResult;
 use Selenium\SessionManager;
 use Facebook\WebDriver\WebDriverKeys;
 use Facebook\WebDriver\Interactions\WebDriverActions;
@@ -33,7 +34,7 @@ class InputTools
 			'required' => ['key'],
 		]
 	)]
-	public function press_key(string $key): array
+	public function press_key(string $key): ToolResult
 	{
 		try {
 			$driver = $this->manager->getDriver();
@@ -49,9 +50,9 @@ class InputTools
 			$actions = new WebDriverActions($driver);
 			$actions->keyDown($resolvedKey)->keyUp($resolvedKey)->perform();
 
-			return ['content' => [['type' => 'text', 'text' => "Key '{$key}' pressed"]]];
+			return ToolResult::text("Key '{$key}' pressed");
 		} catch (\Exception $e) {
-			return ['content' => [['type' => 'text', 'text' => "Error pressing key: {$e->getMessage()}"]], 'isError' => true];
+			return ToolResult::error("Error pressing key: {$e->getMessage()}");
 		}
 	}
 
@@ -67,7 +68,7 @@ class InputTools
 			'required' => ['script'],
 		]
 	)]
-	public function execute_script(string $script, array $args = []): array
+	public function execute_script(string $script, array $args = []): ToolResult
 	{
 		try {
 			$driver = $this->manager->getDriver();
@@ -81,9 +82,9 @@ class InputTools
 				$text = (string) $result;
 			}
 
-			return ['content' => [['type' => 'text', 'text' => $text]]];
+			return ToolResult::text($text);
 		} catch (\Exception $e) {
-			return ['content' => [['type' => 'text', 'text' => "Error executing script: {$e->getMessage()}"]], 'isError' => true];
+			return ToolResult::error("Error executing script: {$e->getMessage()}");
 		}
 	}
 

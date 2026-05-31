@@ -9,6 +9,7 @@
  */
 
 use EnchiladaMCP\McpTool;
+use EnchiladaMCP\ToolResult;
 use Selenium\SessionManager;
 use Facebook\WebDriver\WebDriverBy;
 use Facebook\WebDriver\WebDriverExpectedCondition;
@@ -37,7 +38,7 @@ class ElementTools
 			'required' => ['action', 'by', 'value'],
 		]
 	)]
-	public function interact(string $action, string $by, string $value, int $timeout = 10000): array
+	public function interact(string $action, string $by, string $value, int $timeout = 10000): ToolResult
 	{
 		try {
 			$driver = $this->manager->getDriver();
@@ -49,28 +50,28 @@ class ElementTools
 			switch ($action) {
 				case 'click':
 					$element->click();
-					return ['content' => [['type' => 'text', 'text' => 'Element clicked']]];
+					return ToolResult::text('Element clicked');
 
 				case 'doubleclick':
 					$actions = new WebDriverActions($driver);
 					$actions->doubleClick($element)->perform();
-					return ['content' => [['type' => 'text', 'text' => 'Double click performed']]];
+					return ToolResult::text('Double click performed');
 
 				case 'rightclick':
 					$actions = new WebDriverActions($driver);
 					$actions->contextClick($element)->perform();
-					return ['content' => [['type' => 'text', 'text' => 'Right click performed']]];
+					return ToolResult::text('Right click performed');
 
 				case 'hover':
 					$actions = new WebDriverActions($driver);
 					$actions->moveToElement($element)->perform();
-					return ['content' => [['type' => 'text', 'text' => 'Hovered over element']]];
+					return ToolResult::text('Hovered over element');
 
 				default:
-					return ['content' => [['type' => 'text', 'text' => "Unknown action: {$action}"]], 'isError' => true];
+					return ToolResult::error("Unknown action: {$action}");
 			}
 		} catch (\Exception $e) {
-			return ['content' => [['type' => 'text', 'text' => "Error performing {$action}: {$e->getMessage()}"]], 'isError' => true];
+			return ToolResult::error("Error performing {$action}: {$e->getMessage()}");
 		}
 	}
 
@@ -88,7 +89,7 @@ class ElementTools
 			'required' => ['by', 'value', 'text'],
 		]
 	)]
-	public function send_keys(string $by, string $value, string $text, int $timeout = 10000): array
+	public function send_keys(string $by, string $value, string $text, int $timeout = 10000): ToolResult
 	{
 		try {
 			$driver = $this->manager->getDriver();
@@ -98,9 +99,9 @@ class ElementTools
 			);
 			$element->clear();
 			$element->sendKeys($text);
-			return ['content' => [['type' => 'text', 'text' => "Text \"{$text}\" entered into element"]]];
+			return ToolResult::text("Text \"{$text}\" entered into element");
 		} catch (\Exception $e) {
-			return ['content' => [['type' => 'text', 'text' => "Error entering text: {$e->getMessage()}"]], 'isError' => true];
+			return ToolResult::error("Error entering text: {$e->getMessage()}");
 		}
 	}
 
@@ -117,7 +118,7 @@ class ElementTools
 			'required' => ['by', 'value'],
 		]
 	)]
-	public function get_element_text(string $by, string $value, int $timeout = 10000): array
+	public function get_element_text(string $by, string $value, int $timeout = 10000): ToolResult
 	{
 		try {
 			$driver = $this->manager->getDriver();
@@ -126,9 +127,9 @@ class ElementTools
 				WebDriverExpectedCondition::presenceOfElementLocated($locator)
 			);
 			$text = $element->getText();
-			return ['content' => [['type' => 'text', 'text' => $text]]];
+			return ToolResult::text($text);
 		} catch (\Exception $e) {
-			return ['content' => [['type' => 'text', 'text' => "Error getting element text: {$e->getMessage()}"]], 'isError' => true];
+			return ToolResult::error("Error getting element text: {$e->getMessage()}");
 		}
 	}
 
@@ -146,7 +147,7 @@ class ElementTools
 			'required' => ['by', 'value', 'attribute'],
 		]
 	)]
-	public function get_element_attribute(string $by, string $value, string $attribute, int $timeout = 10000): array
+	public function get_element_attribute(string $by, string $value, string $attribute, int $timeout = 10000): ToolResult
 	{
 		try {
 			$driver = $this->manager->getDriver();
@@ -155,9 +156,9 @@ class ElementTools
 				WebDriverExpectedCondition::presenceOfElementLocated($locator)
 			);
 			$attrValue = $element->getAttribute($attribute);
-			return ['content' => [['type' => 'text', 'text' => $attrValue ?? '']]];
+			return ToolResult::text($attrValue ?? '');
 		} catch (\Exception $e) {
-			return ['content' => [['type' => 'text', 'text' => "Error getting attribute: {$e->getMessage()}"]], 'isError' => true];
+			return ToolResult::error("Error getting attribute: {$e->getMessage()}");
 		}
 	}
 
@@ -175,7 +176,7 @@ class ElementTools
 			'required' => ['by', 'value', 'filePath'],
 		]
 	)]
-	public function upload_file(string $by, string $value, string $filePath, int $timeout = 10000): array
+	public function upload_file(string $by, string $value, string $filePath, int $timeout = 10000): ToolResult
 	{
 		try {
 			$driver = $this->manager->getDriver();
@@ -184,9 +185,9 @@ class ElementTools
 				WebDriverExpectedCondition::presenceOfElementLocated($locator)
 			);
 			$element->sendKeys($filePath);
-			return ['content' => [['type' => 'text', 'text' => 'File upload initiated']]];
+			return ToolResult::text('File upload initiated');
 		} catch (\Exception $e) {
-			return ['content' => [['type' => 'text', 'text' => "Error uploading file: {$e->getMessage()}"]], 'isError' => true];
+			return ToolResult::error("Error uploading file: {$e->getMessage()}");
 		}
 	}
 
