@@ -91,9 +91,7 @@ $sessionManager = new SessionManager($config);
 
 // --- MCP Server ---
 
-$server = new McpServer();
-$server->setName(APPLICATION_NAME);
-$server->setVersion(APPLICATION_VERSION);
+$server = new McpServer(APPLICATION_NAME, APPLICATION_VERSION);
 $server->setInstructions(
 	"To understand the current page state, read the accessibility://current resource. " .
 	"It provides a structured accessibility tree that's faster and more reliable for finding element locators."
@@ -112,7 +110,7 @@ $toolClasses = [
 foreach ($toolClasses as $class) {
 	require_once APPLICATION_ROOT . 'tools' . DIRECTORY_SEPARATOR . "{$class}.php";
 	$instance = new $class($sessionManager);
-	$server->registerTools($instance);
+	$server->register($instance);
 }
 
 // Register resources

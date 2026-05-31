@@ -11,7 +11,7 @@
 use EnchiladaMCP\McpResource;
 
 // Browser Status Resource
-$server->registerResource(new class($sessionManager) {
+$server->register(new class($sessionManager) {
 	private \Selenium\SessionManager $manager;
 
 	public function __construct(\Selenium\SessionManager $manager)
@@ -20,8 +20,8 @@ $server->registerResource(new class($sessionManager) {
 	}
 
 	#[McpResource(
+		uriTemplate: 'browser-status://current',
 		name: 'browser-status',
-		uri: 'browser-status://current',
 		description: 'Current browser session status',
 		mimeType: 'text/plain'
 	)]
@@ -43,12 +43,12 @@ $server->registerResource(new class($sessionManager) {
 });
 
 // Accessibility Snapshot Resource
-$server->registerResource(new class($sessionManager) {
+$server->register(new class($sessionManager) {
 	private \Selenium\SessionManager $manager;
 
 	#[McpResource(
+		uriTemplate: 'accessibility://current',
 		name: 'accessibility-snapshot',
-		uri: 'accessibility://current',
 		description: 'Accessibility tree snapshot of the current page. A compact, structured representation of interactive elements and text content, much smaller than full HTML. Useful for understanding page layout and finding elements to interact with.',
 		mimeType: 'application/json'
 	)]
