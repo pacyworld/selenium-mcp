@@ -21,4 +21,4 @@ jobs:
         run: |
           echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"1.0"}}}' | \
             SELENIUM_GRID_URL=http://localhost:4444 php bin/selenium-mcp | \
-            python3 -c "import json,sys; d=json.loads(sys.stdin.read()); assert d['result']['serverInfo']['name'] == 'Selenium MCP', 'init failed'; print('MCP init OK')"
+            php -r '$d=json_decode(file_get_contents("php://stdin"),true); $n=$d["result"]["serverInfo"]["name"] ?? ""; if($n!=="Selenium MCP"){echo "FAIL: got {$n}\n";exit(1);} echo "MCP init OK\n";'
