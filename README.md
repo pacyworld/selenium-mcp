@@ -1,6 +1,6 @@
 # Selenium MCP Server
 
-A PHP [Model Context Protocol](https://modelcontextprotocol.io/) server for browser automation via Selenium Grid, built on the [Enchilada Framework](https://buenapp.org/enchilada). Drop-in replacement for `@angiejones/mcp-selenium`.
+A PHP [Model Context Protocol](https://modelcontextprotocol.io/) server for browser automation via Selenium Grid, built on the [Enchilada Framework](https://buenapp.org/enchilada).
 
 ## Features
 
