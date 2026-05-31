@@ -1,0 +1,124 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Selenium MCP Server — stdio Entry Point
+ *
+ * Browser automation via Selenium Grid through the Model Context Protocol.
+ * Communicates over stdin/stdout using JSON-RPC 2.0.
+ *
+ * Usage:
+ *   php bin/selenium-mcp
+ *
+ * Environment:
+ *   SELENIUM_MCP_CONFIG   Path to instances.json configuration file
+ *   SELENIUM_GRID_URL     Grid URL override (shortcut for single-grid setups)
+ *
+ * @package    SeleniumMCP
+ * @author     Daniel Morante
+ * @copyright  2026 The Daniel Morante Company, Inc.
+ * @license    BSD-2-Clause
+ */
+
+// Handle --version before bootstrap
+$versionFlags = ['--version', '-v', 'version', '-V'];
+if (isset($argv[1]) && in_array($argv[1], $versionFlags, true)) {
+	require_once dirname(__DIR__) . '/system/app.conf.php';
+	echo APPLICATION_NAME . ' ' . APPLICATION_VERSION . "\n";
+	exit(0);
+}
+
+// Enchilada Framework bootstrap
+require_once dirname(__DIR__) . '/system/bootstrap.inc.php';
+
+// Verify required PHP extensions
+$requiredExtensions = ['curl', 'openssl', 'mbstring'];
+$missing = array_filter($requiredExtensions, fn($ext) => !extension_loaded($ext));
+if (!empty($missing)) {
+	fwrite(STDERR, "[selenium-mcp] ERROR: Missing required PHP extension(s): " . implode(', ', $missing) . "\n");
+	exit(1);
+}
+
+use EnchiladaMCP\McpServer;
+use EnchiladaMCP\StdioTransport;
+use Selenium\SessionManager;
+
+// --- Configuration ---
+
+$configPath = getenv('SELENIUM_MCP_CONFIG') ?: null;
+
+foreach ($argv ?? [] as $arg) {
+	if (str_starts_with($arg, '--config=')) {
+		$configPath = substr($arg, 9);
+		break;
+	}
+}
+
+if ($configPath === null) {
+	$configPath = APPLICATION_CONFDIR . 'instances.json';
+}
+
+// Load config or build from env
+$config = null;
+if (file_exists($configPath)) {
+	$config = json_decode(file_get_contents($configPath), true);
+}
+
+// Allow SELENIUM_GRID_URL env to override/create a default instance
+$gridUrl = getenv('SELENIUM_GRID_URL');
+if ($gridUrl) {
+	if ($config === null) {
+		$config = ['default' => 'grid', 'instances' => []];
+	}
+	$config['instances']['grid'] = array_merge(
+		$config['instances']['grid'] ?? [],
+		['grid_url' => $gridUrl]
+	);
+	if (empty($config['default'])) {
+		$config['default'] = 'grid';
+	}
+}
+
+if ($config === null || empty($config['instances'])) {
+	fwrite(STDERR, "[selenium-mcp] ERROR: No configuration found.\n");
+	fwrite(STDERR, "  Set SELENIUM_GRID_URL env, or provide --config=path/to/instances.json\n");
+	fwrite(STDERR, "  Or copy config/instances.json.sample to config/instances.json\n");
+	exit(1);
+}
+
+// --- Initialize ---
+
+$sessionManager = new SessionManager($config);
+
+// --- MCP Server ---
+
+$server = new McpServer();
+$server->setName(APPLICATION_NAME);
+$server->setVersion(APPLICATION_VERSION);
+$server->setInstructions(
+	"To understand the current page state, read the accessibility://current resource. " .
+	"It provides a structured accessibility tree that's faster and more reliable for finding element locators."
+);
+
+// Register tool classes
+$toolClasses = [
+	'BrowserTools',
+	'ElementTools',
+	'InputTools',
+	'WindowTools',
+	'CookieTools',
+	'DiagnosticsTools',
+];
+
+foreach ($toolClasses as $class) {
+	require_once APPLICATION_ROOT . 'tools' . DIRECTORY_SEPARATOR . "{$class}.php";
+	$instance = new $class($sessionManager);
+	$server->registerTools($instance);
+}
+
+// Register resources
+require_once APPLICATION_ROOT . 'includes' . DIRECTORY_SEPARATOR . 'resources.inc.php';
+
+// --- Run ---
+
+$transport = new StdioTransport($server);
+$transport->run();

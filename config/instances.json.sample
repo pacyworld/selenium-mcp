@@ -1,0 +1,11 @@
+{
+	"default": "grid",
+	"instances": {
+		"grid": {
+			"grid_url": "http://localhost:4444",
+			"default_browser": "firefox",
+			"headless": true,
+			"timeout": 30000
+		}
+	}
+}
