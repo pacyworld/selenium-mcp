@@ -167,31 +167,17 @@ class McpServer
 		try {
 			$result = $this->registry->callTool($name, $arguments);
 		} catch (\Throwable $e) {
-			return [
-				'content' => [
-					[
-						'type' => 'text',
-						'text' => json_encode(['error' => $e->getMessage()]),
-					],
-				],
-				'isError' => true,
-			];
+			return ToolResult::error($e->getMessage())->toArray();
 		}
 
-		// If the tool returns a pre-formatted MCP response (with 'content' key),
-		// pass it through directly. This supports image, binary, and mixed content.
-		if (is_array($result) && isset($result['content']) && is_array($result['content'])) {
-			return $result;
+		// Typed return: tools that return ToolResult get pass-through
+		if ($result instanceof ToolResult) {
+			return $result->toArray();
 		}
 
-		return [
-			'content' => [
-				[
-					'type' => 'text',
-					'text' => is_string($result) ? $result : json_encode($result, JSON_UNESCAPED_SLASHES),
-				],
-			],
-		];
+		// Backward compat: plain values auto-wrap as text
+		$text = is_string($result) ? $result : json_encode($result, JSON_UNESCAPED_SLASHES);
+		return ToolResult::text($text)->toArray();
 	}
 
 	/**

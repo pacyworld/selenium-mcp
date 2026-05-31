@@ -9,6 +9,7 @@
  */
 
 use EnchiladaMCP\McpTool;
+use EnchiladaMCP\ToolResult;
 use Selenium\SessionManager;
 
 class BrowserTools
@@ -87,7 +88,7 @@ class BrowserTools
 			],
 		]
 	)]
-	public function take_screenshot(string $outputPath = ''): array
+	public function take_screenshot(string $outputPath = ''): ToolResult
 	{
 		try {
 			$driver = $this->manager->getDriver();
@@ -95,12 +96,12 @@ class BrowserTools
 
 			if (!empty($outputPath)) {
 				file_put_contents($outputPath, $screenshot);
-				return ['content' => [['type' => 'text', 'text' => "Screenshot saved to {$outputPath}"]]];
+				return ToolResult::text("Screenshot saved to {$outputPath}");
 			}
 
-			return ['content' => [['type' => 'image', 'data' => base64_encode($screenshot), 'mimeType' => 'image/png']]];
+			return ToolResult::image(base64_encode($screenshot));
 		} catch (\Exception $e) {
-			return ['content' => [['type' => 'text', 'text' => "Error taking screenshot: {$e->getMessage()}"]], 'isError' => true];
+			return ToolResult::error("Error taking screenshot: {$e->getMessage()}");
 		}
 	}
 
