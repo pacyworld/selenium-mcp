@@ -107,7 +107,7 @@ class BrowserTools
 	#[McpTool(
 		name: 'close_session',
 		description: 'closes the current browser session',
-		inputSchema: ['type' => 'object', 'properties' => []]
+		inputSchema: ['type' => 'object']
 	)]
 	public function close_session(): array
 	{
