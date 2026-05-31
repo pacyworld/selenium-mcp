@@ -7,14 +7,15 @@ on:
     branches: [master]
 
 jobs:
-  lint:
-    runs-on: freebsd
+  test:
+    runs-on: FreeBSD
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: PHP Lint
+      - name: Syntax check
         run: |
-          find . -name "*.php" -not -path "./libraries/Facebook/*" -exec php -l {} \;
+          find classes/ tools/ bin/ system/ includes/ libraries/EnchiladaMCP/ libraries/EnchiladaHTTP/ libraries/EnchiladaWebSocket/ -name '*.php' -exec php -l {} \; | grep -v "No syntax errors" && exit 1 || true
 
       - name: Verify MCP Initialize
         run: |

@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: FreeBSD
+    steps:
+      - name: Checkout
+        run: |
+          git clone --depth=1 --branch ${{ github.ref_name }} ${{ github.server_url }}/${{ github.repository }}.git .
+
+      - name: Syntax check
+        run: |
+          find classes/ tools/ bin/ system/ includes/ libraries/EnchiladaMCP/ libraries/EnchiladaHTTP/ libraries/EnchiladaWebSocket/ -name '*.php' -exec php -l {} \; | grep -v "No syntax errors" && exit 1 || true
+
+      - name: Build PHAR
+        run: php -d phar.readonly=0 bin/build-phar.php
+
+      - name: Create release
+        run: |
+          VERSION="${{ github.ref_name }}"
+          BODY="Release ${VERSION} of Selenium MCP Server.
+
+          ## Install
+          \`\`\`sh
+          curl -LO ${{ github.server_url }}/${{ github.repository }}/releases/download/${VERSION}/selenium-mcp.phar
+          chmod +x selenium-mcp.phar
+          \`\`\`"
+
+          # Create release via API
+          RELEASE_ID=$(curl -s -X POST \
+            -H "Authorization: token ${FORGE_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"tag_name\":\"${VERSION}\",\"name\":\"${VERSION}\",\"body\":$(echo "$BODY" | jq -Rs .)}" \
+            "${{ github.server_url }}/api/v1/repos/${{ github.repository }}/releases" | jq -r '.id')
+
+          # Upload PHAR as release asset
+          curl -s -X POST \
+            -H "Authorization: token ${FORGE_TOKEN}" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary @selenium-mcp.phar \
+            "${{ github.server_url }}/api/v1/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets?name=selenium-mcp.phar"
+
+          echo "Release ${VERSION} created with PHAR attachment"
+        env:
+          FORGE_TOKEN: ${{ secrets.FORGE_TOKEN }}
