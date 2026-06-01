@@ -42,9 +42,10 @@ class WebSocketClient
 	 * @param string $url WebSocket URL (ws:// or wss://)
 	 * @param array $headers Additional HTTP headers for the upgrade request
 	 * @param float $timeout Connection timeout in seconds
+	 * @param bool $strictAccept If false, Sec-WebSocket-Accept mismatch is non-fatal (for proxies)
 	 * @throws \RuntimeException on connection or handshake failure
 	 */
-	public function connect(string $url, array $headers = [], float $timeout = 5.0): void
+	public function connect(string $url, array $headers = [], float $timeout = 5.0, bool $strictAccept = true): void
 	{
 		$parsed = parse_url($url);
 
@@ -70,7 +71,7 @@ class WebSocketClient
 
 		// Read and validate response
 		$response = WebSocketHandshake::readResponseHeaders($this->transport);
-		$handshake->validateResponse($response);
+		$handshake->validateResponse($response, $strictAccept);
 
 		$this->connected = true;
 	}

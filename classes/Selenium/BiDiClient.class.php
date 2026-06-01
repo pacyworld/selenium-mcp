@@ -30,7 +30,7 @@ class BiDiClient
 	public function connect(string $bidiUrl): void
 	{
 		$this->ws = new WebSocketClient(new StreamTransport());
-		$this->ws->connect($bidiUrl);
+		$this->ws->connect($bidiUrl, [], 5.0, false);
 
 		// Subscribe to log and network events
 		$subscribeMessage = json_encode([
@@ -104,6 +104,35 @@ class BiDiClient
 			if ($this->ws !== null && $this->ws->getTransport()->isConnected()) {
 				$this->ws->getTransport()->setBlocking(false);
 			}
+		}
+	}
+
+	/**
+	 * Drain all pending BiDi events from the buffer.
+	 * Use before reading logs to capture events that arrived between tool calls.
+	 */
+	public function drainEvents(): void
+	{
+		if (!$this->isConnected()) {
+			return;
+		}
+
+		$stream = $this->getStream();
+		if ($stream === null) {
+			return;
+		}
+
+		// Poll up to 50 frames or until no more data pending
+		for ($i = 0; $i < 50; $i++) {
+			$read = [$stream];
+			$write = $except = null;
+			$changed = @stream_select($read, $write, $except, 0, 50000); // 50ms
+
+			if ($changed === false || $changed === 0) {
+				break;
+			}
+
+			$this->processEvents();
 		}
 	}
 

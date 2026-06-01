@@ -33,6 +33,8 @@ class BrowserTools
 					'properties' => [
 						'headless' => ['type' => 'boolean', 'description' => 'Run browser in headless mode'],
 						'arguments' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Additional browser arguments'],
+						'acceptInsecureCerts' => ['type' => 'boolean', 'description' => 'Accept invalid/self-signed TLS certificates'],
+						'platformName' => ['type' => 'string', 'description' => 'Target platform for Grid routing (e.g. WINDOWS, UNIX, LINUX, MAC)'],
 					],
 				],
 			],
@@ -46,6 +48,7 @@ class BrowserTools
 			$message = "Browser started with session_id: {$sessionId}";
 
 			if ($this->manager->isBidiEnabled()) {
+				$this->manager->connectBidi();
 				$message .= ' (BiDi enabled: console logs, JS errors, and network activity are being captured)';
 			}
 

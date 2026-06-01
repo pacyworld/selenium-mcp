@@ -11,21 +11,14 @@
 use EnchiladaMCP\McpTool;
 use EnchiladaMCP\ToolResult;
 use Selenium\SessionManager;
-use Selenium\BiDiClient;
 
 class DiagnosticsTools
 {
 	private SessionManager $manager;
-	private ?BiDiClient $bidi = null;
 
 	public function __construct(SessionManager $manager)
 	{
 		$this->manager = $manager;
-	}
-
-	public function setBiDiClient(?BiDiClient $bidi): void
-	{
-		$this->bidi = $bidi;
 	}
 
 	#[McpTool(
@@ -45,11 +38,15 @@ class DiagnosticsTools
 		try {
 			$this->manager->getDriver(); // ensure session exists
 
-			if ($this->bidi === null || !$this->bidi->isConnected()) {
+			$bidi = $this->manager->getBiDiClient();
+			if ($bidi === null || !$bidi->isConnected()) {
 				return ToolResult::text('Diagnostics not available (BiDi not supported by this browser/driver)');
 			}
 
-			$logs = $this->bidi->getLogs($type);
+			// Drain any pending events before reading logs
+			$bidi->drainEvents();
+
+			$logs = $bidi->getLogs($type);
 
 			if (empty($logs)) {
 				$emptyMessages = [
@@ -63,7 +60,7 @@ class DiagnosticsTools
 			$result = json_encode($logs, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
 			if ($clear) {
-				$this->bidi->clearLogs($type);
+				$bidi->clearLogs($type);
 			}
 
 			return ToolResult::text($result);

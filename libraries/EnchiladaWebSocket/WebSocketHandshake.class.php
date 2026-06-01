@@ -21,7 +21,7 @@ class WebSocketHandshake
 	private string $path;
 	private array $headers;
 
-	const GUID = '258EAFA5-E914-47DA-95CA-5AB5DC76B97E';
+	const GUID = '258EAFA5-E914-47DA-95CA-5AB0FAB11C10';
 
 	/**
 	 * @param string $host Host header value (host:port)
@@ -61,10 +61,11 @@ class WebSocketHandshake
 	 * Validate the server's HTTP 101 Switching Protocols response.
 	 *
 	 * @param string $response Raw HTTP response headers
+	 * @param bool $strictAccept If false, accept mismatch is non-fatal (for WebSocket proxies)
 	 * @return bool True if handshake is valid
 	 * @throws \RuntimeException if validation fails
 	 */
-	public function validateResponse(string $response): bool
+	public function validateResponse(string $response, bool $strictAccept = true): bool
 	{
 		// Check for 101 status
 		if (!preg_match('#^HTTP/1\.1 101#i', $response)) {
@@ -86,7 +87,9 @@ class WebSocketHandshake
 
 		$actualAccept = trim($m[1]);
 		if ($actualAccept !== $expectedAccept) {
-			throw new \RuntimeException("WebSocket handshake failed: Sec-WebSocket-Accept mismatch (expected {$expectedAccept}, got {$actualAccept})");
+			if ($strictAccept) {
+				throw new \RuntimeException("WebSocket handshake failed: Sec-WebSocket-Accept mismatch (expected {$expectedAccept}, got {$actualAccept})");
+			}
 		}
 
 		return true;

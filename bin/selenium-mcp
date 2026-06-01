@@ -94,7 +94,12 @@ $sessionManager = new SessionManager($config);
 $server = new McpServer(APPLICATION_NAME, APPLICATION_VERSION);
 $server->setInstructions(
 	"To understand the current page state, read the accessibility://current resource. " .
-	"It provides a structured accessibility tree that's faster and more reliable for finding element locators."
+	"It provides a structured accessibility tree that's faster and more reliable for finding element locators.\n\n" .
+	"IMPORTANT start_browser options:\n" .
+	"- acceptInsecureCerts: true — required for sites using private/self-signed TLS certificates. " .
+	"Without this, navigation to such sites will hang indefinitely.\n" .
+	"- platformName: target a specific Grid node OS (e.g. 'WINDOWS', 'UNIX', 'LINUX', 'MAC').\n" .
+	"- headless: true/false — run browser without a visible window (default depends on node config)."
 );
 
 // Register tool classes
@@ -119,4 +124,5 @@ require_once APPLICATION_ROOT . 'includes' . DIRECTORY_SEPARATOR . 'resources.in
 // --- Run ---
 
 $transport = new StdioTransport($server);
+$sessionManager->setTransport($transport);
 $transport->run();

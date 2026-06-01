@@ -17,6 +17,7 @@ use Facebook\WebDriver\Remote\RemoteWebDriver;
 use Facebook\WebDriver\Remote\DesiredCapabilities;
 use Facebook\WebDriver\Chrome\ChromeOptions;
 use Facebook\WebDriver\Firefox\FirefoxOptions;
+use EnchiladaMCP\StdioTransport;
 
 class SessionManager
 {
@@ -25,6 +26,9 @@ class SessionManager
 
 	/** @var array<string, RemoteWebDriver> */
 	private array $drivers = [];
+
+	private ?BiDiClient $bidiClient = null;
+	private ?StdioTransport $transport = null;
 
 	public function __construct(array $config)
 	{
@@ -68,6 +72,11 @@ class SessionManager
 		$capabilities = $this->buildCapabilities($browser, $options);
 
 		$driver = RemoteWebDriver::create($gridUrl, $capabilities);
+
+		// Set timeouts to avoid indefinite hangs on unreachable hosts
+		$timeout = $this->getInstanceConfig()['timeout'] ?? 30;
+		$driver->manage()->timeouts()->pageLoadTimeout($timeout);
+
 		$sessionId = $browser . '_' . time();
 
 		$this->drivers[$sessionId] = $driver;
@@ -111,6 +120,7 @@ class SessionManager
 		$driver = $this->drivers[$sessionId];
 
 		try {
+			$this->disconnectBidi();
 			$driver->quit();
 		} finally {
 			unset($this->drivers[$sessionId]);
@@ -170,6 +180,70 @@ class SessionManager
 		return $wsUrl ?: null;
 	}
 
+	/**
+	 * Set the StdioTransport for BiDi stream integration.
+	 */
+	public function setTransport(StdioTransport $transport): void
+	{
+		$this->transport = $transport;
+	}
+
+	/**
+	 * Connect the BiDi WebSocket and register with the event loop.
+	 */
+	public function connectBidi(): void
+	{
+		$bidiUrl = $this->getBidiUrl();
+		if ($bidiUrl === null) {
+			return;
+		}
+
+		try {
+			$this->bidiClient = new BiDiClient();
+			$this->bidiClient->connect($bidiUrl);
+
+			// Register BiDi stream with transport event loop
+			$stream = $this->bidiClient->getStream();
+			if ($stream !== null && $this->transport !== null) {
+				$bidi = $this->bidiClient;
+				$this->transport->addStream($stream, function ($s) use ($bidi) {
+					$bidi->processEvents();
+				});
+			}
+
+			fwrite(STDERR, "[selenium-mcp] BiDi connected: {$bidiUrl}\n");
+		} catch (\Exception $e) {
+			fwrite(STDERR, "[selenium-mcp] BiDi connection failed: {$e->getMessage()}\n");
+			$this->bidiClient = null;
+		}
+	}
+
+	/**
+	 * Disconnect BiDi WebSocket and remove from event loop.
+	 */
+	public function disconnectBidi(): void
+	{
+		if ($this->bidiClient === null) {
+			return;
+		}
+
+		$stream = $this->bidiClient->getStream();
+		if ($stream !== null && $this->transport !== null) {
+			$this->transport->removeStream($stream);
+		}
+
+		$this->bidiClient->disconnect();
+		$this->bidiClient = null;
+	}
+
+	/**
+	 * Get the active BiDi client (if connected).
+	 */
+	public function getBiDiClient(): ?BiDiClient
+	{
+		return $this->bidiClient;
+	}
+
 	private function buildCapabilities(string $browser, array $options): DesiredCapabilities
 	{
 		$headless = $options['headless'] ?? ($this->getInstanceConfig()['headless'] ?? false);
@@ -220,8 +294,19 @@ class SessionManager
 				throw new \RuntimeException("Unsupported browser: {$browser}");
 		}
 
-		// Request BiDi WebSocket URL
+		// W3C standard capabilities
 		$caps->setCapability('webSocketUrl', true);
+
+		$acceptInsecureCerts = $options['acceptInsecureCerts']
+			?? ($this->getInstanceConfig()['accept_insecure_certs'] ?? false);
+		if ($acceptInsecureCerts) {
+			$caps->setCapability('acceptInsecureCerts', true);
+		}
+
+		$platformName = $options['platformName'] ?? ($this->getInstanceConfig()['platform'] ?? null);
+		if ($platformName !== null) {
+			$caps->setCapability('platformName', $platformName);
+		}
 
 		return $caps;
 	}

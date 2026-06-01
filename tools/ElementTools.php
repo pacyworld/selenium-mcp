@@ -71,7 +71,7 @@ class ElementTools
 					return ToolResult::error("Unknown action: {$action}");
 			}
 		} catch (\Exception $e) {
-			return ToolResult::error("Error performing {$action}: {$e->getMessage()}");
+			return ToolResult::error("Error performing {$action}: {$e->getMessage()}. Try reading the accessibility://current resource to discover available elements and their locators.");
 		}
 	}
 
@@ -129,7 +129,7 @@ class ElementTools
 			$text = $element->getText();
 			return ToolResult::text($text);
 		} catch (\Exception $e) {
-			return ToolResult::error("Error getting element text: {$e->getMessage()}");
+			return ToolResult::error("Error getting element text: {$e->getMessage()}. Try reading the accessibility://current resource to discover available elements and their locators.");
 		}
 	}
 
@@ -158,7 +158,7 @@ class ElementTools
 			$attrValue = $element->getAttribute($attribute);
 			return ToolResult::text($attrValue ?? '');
 		} catch (\Exception $e) {
-			return ToolResult::error("Error getting attribute: {$e->getMessage()}");
+			return ToolResult::error("Error getting attribute: {$e->getMessage()}. Try reading the accessibility://current resource to discover available elements and their locators.");
 		}
 	}
 
