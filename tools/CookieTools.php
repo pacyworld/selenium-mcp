@@ -67,6 +67,7 @@ class CookieTools
 
 	#[McpTool(
 		name: 'get_cookies',
+		readOnlyHint: true,
 		description: 'retrieves cookies from the current browser session. Returns all cookies or a specific cookie by name.',
 		inputSchema: [
 			'type' => 'object',

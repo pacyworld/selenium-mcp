@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.1 — 2026-06-30
+
+### Added
+- MCP tool annotations (`readOnlyHint`) on read-only tools: `take_screenshot`, `get_cookies`, `diagnostics`, `get_element_text`, `get_element_attribute`. Vendored from updated EnchiladaMCP library. Lets MCP clients distinguish safe observation calls from browser-state-mutating tools.
+
 ## v0.2.0 — 2026-05-31
 
 ### BiDi Diagnostics — Now Working

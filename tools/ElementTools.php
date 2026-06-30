@@ -107,6 +107,7 @@ class ElementTools
 
 	#[McpTool(
 		name: 'get_element_text',
+		readOnlyHint: true,
 		description: 'gets the text content of an element',
 		inputSchema: [
 			'type' => 'object',
@@ -135,6 +136,7 @@ class ElementTools
 
 	#[McpTool(
 		name: 'get_element_attribute',
+		readOnlyHint: true,
 		description: "gets the value of an attribute on an element. Use this to verify element state. Prefer this over screenshots for validation.",
 		inputSchema: [
 			'type' => 'object',

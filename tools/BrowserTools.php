@@ -82,6 +82,7 @@ class BrowserTools
 
 	#[McpTool(
 		name: 'take_screenshot',
+		readOnlyHint: true,
 		description: "captures a screenshot of the current page. Prefer using the accessibility://current resource for understanding page content. Use get_element_text, get_element_attribute, or execute_script to verify element state. Only use screenshots when visual layout or styling needs to be verified.",
 		inputSchema: [
 			'type' => 'object',

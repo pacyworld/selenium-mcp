@@ -19,7 +19,7 @@ class ToolRegistry
 	/**
 	 * Registered tools indexed by name.
 	 *
-	 * @var array<string,array{name:string,description:string,inputSchema:array}>
+	 * @var array<string,array{name:string,description:string,inputSchema:array,annotations?:array}>
 	 */
 	private array $tools = [];
 
@@ -86,11 +86,24 @@ class ToolRegistry
 				$inputSchema = $this->buildSchemaFromMethod($method);
 			}
 
-			$this->tools[$toolName] = [
+			$tool = [
 				'name' => $toolName,
 				'description' => $description ?: "Tool: {$toolName}",
 				'inputSchema' => $inputSchema,
 			];
+
+			$annotations = array_filter([
+				'readOnlyHint' => $attr->readOnlyHint,
+				'destructiveHint' => $attr->destructiveHint,
+				'idempotentHint' => $attr->idempotentHint,
+				'openWorldHint' => $attr->openWorldHint,
+			], fn($v) => $v !== null);
+
+			if (!empty($annotations)) {
+				$tool['annotations'] = $annotations;
+			}
+
+			$this->tools[$toolName] = $tool;
 
 			$this->handlers[$toolName] = [$handler, $method->getName()];
 		}
@@ -145,7 +158,7 @@ class ToolRegistry
 	/**
 	 * List all registered tools in MCP protocol format.
 	 *
-	 * @return array<array{name:string,description:string,inputSchema:array}>
+	 * @return array<array{name:string,description:string,inputSchema:array,annotations?:array}>
 	 */
 	public function listTools(): array
 	{
@@ -228,19 +241,42 @@ class ToolRegistry
 	}
 
 	/**
-	 * List all registered resource templates in MCP protocol format.
+	 * List registered resource templates (URIs with {param} placeholders) in MCP protocol format.
 	 *
 	 * @return array<array{uriTemplate:string,name:string,description:string,mimeType:string}>
 	 */
 	public function listResourceTemplates(): array
 	{
-		return array_values($this->resourceTemplates);
+		return array_values(array_filter($this->resourceTemplates, function ($meta) {
+			return str_contains($meta['uriTemplate'], '{');
+		}));
 	}
 
 	/**
-	 * Check if any resource templates are registered.
+	 * List registered static resources (fixed URIs without placeholders) in MCP protocol format.
 	 *
-	 * @return bool True if at least one resource template exists
+	 * @return array<array{uri:string,name:string,description:string,mimeType:string}>
+	 */
+	public function listResources(): array
+	{
+		$resources = [];
+		foreach ($this->resourceTemplates as $meta) {
+			if (!str_contains($meta['uriTemplate'], '{')) {
+				$resources[] = [
+					'uri' => $meta['uriTemplate'],
+					'name' => $meta['name'],
+					'description' => $meta['description'],
+					'mimeType' => $meta['mimeType'],
+				];
+			}
+		}
+		return $resources;
+	}
+
+	/**
+	 * Check if any resources (static or templated) are registered.
+	 *
+	 * @return bool True if at least one resource exists
 	 */
 	public function hasResources(): bool
 	{

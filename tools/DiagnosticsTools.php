@@ -23,6 +23,7 @@ class DiagnosticsTools
 
 	#[McpTool(
 		name: 'diagnostics',
+		readOnlyHint: true,
 		description: 'retrieves browser diagnostics (console logs, JS errors, or network activity) captured via WebDriver BiDi',
 		inputSchema: [
 			'type' => 'object',
