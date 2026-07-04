@@ -34,14 +34,15 @@ class ElementTools
 				'by' => ['type' => 'string', 'enum' => ['id', 'css', 'xpath', 'name', 'tag', 'class'], 'description' => 'Locator strategy to find element'],
 				'value' => ['type' => 'string', 'description' => 'Value for the locator strategy'],
 				'timeout' => ['type' => 'number', 'description' => 'Maximum time to wait for element in milliseconds'],
+				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
 			],
 			'required' => ['action', 'by', 'value'],
 		]
 	)]
-	public function interact(string $action, string $by, string $value, int $timeout = 10000): ToolResult
+	public function interact(string $action, string $by, string $value, int $timeout = 10000, string $session_id = ''): ToolResult
 	{
 		try {
-			$driver = $this->manager->getDriver();
+			$driver = $this->manager->getDriver($session_id ?: null);
 			$locator = $this->getLocator($by, $value);
 			$element = $driver->wait($timeout / 1000)->until(
 				WebDriverExpectedCondition::presenceOfElementLocated($locator)
@@ -85,14 +86,15 @@ class ElementTools
 				'value' => ['type' => 'string', 'description' => 'Value for the locator strategy'],
 				'text' => ['type' => 'string', 'description' => 'Text to enter into the element'],
 				'timeout' => ['type' => 'number', 'description' => 'Maximum time to wait for element in milliseconds'],
+				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
 			],
 			'required' => ['by', 'value', 'text'],
 		]
 	)]
-	public function send_keys(string $by, string $value, string $text, int $timeout = 10000): ToolResult
+	public function send_keys(string $by, string $value, string $text, int $timeout = 10000, string $session_id = ''): ToolResult
 	{
 		try {
-			$driver = $this->manager->getDriver();
+			$driver = $this->manager->getDriver($session_id ?: null);
 			$locator = $this->getLocator($by, $value);
 			$element = $driver->wait($timeout / 1000)->until(
 				WebDriverExpectedCondition::presenceOfElementLocated($locator)
@@ -115,14 +117,15 @@ class ElementTools
 				'by' => ['type' => 'string', 'enum' => ['id', 'css', 'xpath', 'name', 'tag', 'class'], 'description' => 'Locator strategy to find element'],
 				'value' => ['type' => 'string', 'description' => 'Value for the locator strategy'],
 				'timeout' => ['type' => 'number', 'description' => 'Maximum time to wait for element in milliseconds'],
+				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
 			],
 			'required' => ['by', 'value'],
 		]
 	)]
-	public function get_element_text(string $by, string $value, int $timeout = 10000): ToolResult
+	public function get_element_text(string $by, string $value, int $timeout = 10000, string $session_id = ''): ToolResult
 	{
 		try {
-			$driver = $this->manager->getDriver();
+			$driver = $this->manager->getDriver($session_id ?: null);
 			$locator = $this->getLocator($by, $value);
 			$element = $driver->wait($timeout / 1000)->until(
 				WebDriverExpectedCondition::presenceOfElementLocated($locator)
@@ -145,14 +148,15 @@ class ElementTools
 				'value' => ['type' => 'string', 'description' => 'Value for the locator strategy'],
 				'attribute' => ['type' => 'string', 'description' => "Name of the attribute to get (e.g., 'href', 'value', 'class')"],
 				'timeout' => ['type' => 'number', 'description' => 'Maximum time to wait for element in milliseconds'],
+				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
 			],
 			'required' => ['by', 'value', 'attribute'],
 		]
 	)]
-	public function get_element_attribute(string $by, string $value, string $attribute, int $timeout = 10000): ToolResult
+	public function get_element_attribute(string $by, string $value, string $attribute, int $timeout = 10000, string $session_id = ''): ToolResult
 	{
 		try {
-			$driver = $this->manager->getDriver();
+			$driver = $this->manager->getDriver($session_id ?: null);
 			$locator = $this->getLocator($by, $value);
 			$element = $driver->wait($timeout / 1000)->until(
 				WebDriverExpectedCondition::presenceOfElementLocated($locator)
@@ -174,14 +178,15 @@ class ElementTools
 				'value' => ['type' => 'string', 'description' => 'Value for the locator strategy'],
 				'filePath' => ['type' => 'string', 'description' => 'Absolute path to the file to upload'],
 				'timeout' => ['type' => 'number', 'description' => 'Maximum time to wait for element in milliseconds'],
+				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
 			],
 			'required' => ['by', 'value', 'filePath'],
 		]
 	)]
-	public function upload_file(string $by, string $value, string $filePath, int $timeout = 10000): ToolResult
+	public function upload_file(string $by, string $value, string $filePath, int $timeout = 10000, string $session_id = ''): ToolResult
 	{
 		try {
-			$driver = $this->manager->getDriver();
+			$driver = $this->manager->getDriver($session_id ?: null);
 			$locator = $this->getLocator($by, $value);
 			$element = $driver->wait($timeout / 1000)->until(
 				WebDriverExpectedCondition::presenceOfElementLocated($locator)

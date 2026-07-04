@@ -35,6 +35,7 @@ class CookieTools
 				'secure' => ['type' => 'boolean', 'description' => 'Whether the cookie is a secure cookie'],
 				'httpOnly' => ['type' => 'boolean', 'description' => 'Whether the cookie is HTTP only'],
 				'expiry' => ['type' => 'number', 'description' => 'Expiry date of the cookie as a Unix timestamp (seconds since epoch)'],
+				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
 			],
 			'required' => ['name', 'value'],
 		]
@@ -46,10 +47,11 @@ class CookieTools
 		string $path = '',
 		bool $secure = false,
 		bool $httpOnly = false,
-		int $expiry = 0
+		int $expiry = 0,
+		string $session_id = ''
 	): ToolResult {
 		try {
-			$driver = $this->manager->getDriver();
+			$driver = $this->manager->getDriver($session_id ?: null);
 
 			$cookie = new Cookie($name, $value);
 			if (!empty($domain)) $cookie->setDomain($domain);
@@ -73,13 +75,14 @@ class CookieTools
 			'type' => 'object',
 			'properties' => [
 				'name' => ['type' => 'string', 'description' => 'Name of a specific cookie to retrieve. If omitted, all cookies are returned.'],
+				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
 			],
 		]
 	)]
-	public function get_cookies(string $name = ''): ToolResult
+	public function get_cookies(string $name = '', string $session_id = ''): ToolResult
 	{
 		try {
-			$driver = $this->manager->getDriver();
+			$driver = $this->manager->getDriver($session_id ?: null);
 
 			if (!empty($name)) {
 				$cookie = $driver->manage()->getCookieNamed($name);
@@ -103,13 +106,14 @@ class CookieTools
 			'type' => 'object',
 			'properties' => [
 				'name' => ['type' => 'string', 'description' => 'Name of the cookie to delete. If omitted, all cookies are deleted.'],
+				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
 			],
 		]
 	)]
-	public function delete_cookie(string $name = ''): ToolResult
+	public function delete_cookie(string $name = '', string $session_id = ''): ToolResult
 	{
 		try {
-			$driver = $this->manager->getDriver();
+			$driver = $this->manager->getDriver($session_id ?: null);
 
 			if (!empty($name)) {
 				$driver->manage()->deleteCookieNamed($name);

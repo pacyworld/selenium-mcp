@@ -27,7 +27,9 @@ class SessionManager
 	/** @var array<string, RemoteWebDriver> */
 	private array $drivers = [];
 
-	private ?BiDiClient $bidiClient = null;
+	/** @var array<string, BiDiClient> BiDi clients indexed by session ID (one per concurrent session). */
+	private array $bidiClients = [];
+
 	private ?StdioTransport $transport = null;
 
 	public function __construct(array $config)
@@ -77,7 +79,9 @@ class SessionManager
 		$timeout = $this->getInstanceConfig()['timeout'] ?? 30;
 		$driver->manage()->timeouts()->pageLoadTimeout($timeout);
 
-		$sessionId = $browser . '_' . time();
+		// Unique even when multiple sessions start within the same second
+		// (e.g. two concurrent MCP clients calling start_browser at once).
+		$sessionId = $browser . '_' . bin2hex(random_bytes(4));
 
 		$this->drivers[$sessionId] = $driver;
 		$this->currentSession = $sessionId;
@@ -86,17 +90,34 @@ class SessionManager
 	}
 
 	/**
-	 * Get the active WebDriver instance.
+	 * Get a WebDriver instance.
 	 *
-	 * @throws \RuntimeException if no active session
+	 * Concurrency note: when multiple logical MCP sessions share one
+	 * server process (common with IDE hosts that share a single spawned
+	 * stdio process across chat sessions in the same window), relying on
+	 * the implicit "current session" without passing $sessionId means a
+	 * concurrent start_browser() call from another session can silently
+	 * redirect subsequent tool calls to a different browser. Callers that
+	 * care about isolation under concurrent use should always pass the
+	 * session_id returned by start_browser().
+	 *
+	 * @param  string|null $sessionId Explicit session ID, or null for the
+	 *                                 implicit "current" session (single-session
+	 *                                 convenience; not safe under concurrent use)
+	 * @throws \RuntimeException if the resolved session has no active driver
 	 */
-	public function getDriver(): RemoteWebDriver
+	public function getDriver(?string $sessionId = null): RemoteWebDriver
 	{
-		if ($this->currentSession === null || !isset($this->drivers[$this->currentSession])) {
+		$sessionId = $sessionId ?? $this->currentSession;
+
+		if ($sessionId === null || !isset($this->drivers[$sessionId])) {
+			if ($sessionId !== null) {
+				throw new \RuntimeException("No active browser session with id '{$sessionId}'");
+			}
 			throw new \RuntimeException('No active browser session');
 		}
 
-		return $this->drivers[$this->currentSession];
+		return $this->drivers[$sessionId];
 	}
 
 	/**
@@ -108,23 +129,33 @@ class SessionManager
 	}
 
 	/**
-	 * Close the current session.
+	 * Close a browser session.
+	 *
+	 * @param  string|null $sessionId Explicit session ID, or null for the
+	 *                                 implicit "current" session
+	 * @throws \RuntimeException if the resolved session doesn't exist
 	 */
-	public function closeSession(): string
+	public function closeSession(?string $sessionId = null): string
 	{
-		if ($this->currentSession === null) {
+		$sessionId = $sessionId ?? $this->currentSession;
+
+		if ($sessionId === null || !isset($this->drivers[$sessionId])) {
 			throw new \RuntimeException('No active browser session');
 		}
 
-		$sessionId = $this->currentSession;
 		$driver = $this->drivers[$sessionId];
 
 		try {
-			$this->disconnectBidi();
+			$this->disconnectBidi($sessionId);
 			$driver->quit();
 		} finally {
 			unset($this->drivers[$sessionId]);
-			$this->currentSession = null;
+			// Only clear the "current" pointer if we just closed the session
+			// it was pointing at -- closing an explicitly-targeted session
+			// must never disturb another session's implicit default.
+			if ($this->currentSession === $sessionId) {
+				$this->currentSession = null;
+			}
 		}
 
 		return $sessionId;
@@ -135,46 +166,52 @@ class SessionManager
 	 */
 	public function closeAll(): void
 	{
-		foreach ($this->drivers as $id => $driver) {
+		foreach (array_keys($this->drivers) as $id) {
 			try {
-				$driver->quit();
+				$this->disconnectBidi($id);
+				$this->drivers[$id]->quit();
 			} catch (\Exception $e) {
 				fwrite(STDERR, "[selenium-mcp] Error closing session {$id}: {$e->getMessage()}\n");
 			}
 		}
 
 		$this->drivers = [];
+		$this->bidiClients = [];
 		$this->currentSession = null;
 	}
 
 	/**
-	 * Check if there's an active session.
+	 * Check if a session (explicit or implicit "current") is active.
 	 */
-	public function hasSession(): bool
+	public function hasSession(?string $sessionId = null): bool
 	{
-		return $this->currentSession !== null && isset($this->drivers[$this->currentSession]);
+		$sessionId = $sessionId ?? $this->currentSession;
+		return $sessionId !== null && isset($this->drivers[$sessionId]);
 	}
 
 	/**
-	 * Check if BiDi is enabled for the current session.
+	 * Check if BiDi is enabled for a session (explicit or implicit "current").
 	 */
-	public function isBidiEnabled(): bool
+	public function isBidiEnabled(?string $sessionId = null): bool
 	{
-		return $this->getBidiUrl() !== null;
+		return $this->getBidiUrl($sessionId) !== null;
 	}
 
 	/**
-	 * Get the WebDriver session's BiDi WebSocket URL (if available).
+	 * Get a session's BiDi WebSocket URL (if available).
 	 *
 	 * The Grid returns the webSocketUrl capability when BiDi is supported.
+	 *
+	 * @param string|null $sessionId Explicit session ID, or null for the
+	 *                                implicit "current" session
 	 */
-	public function getBidiUrl(): ?string
+	public function getBidiUrl(?string $sessionId = null): ?string
 	{
-		if (!$this->hasSession()) {
+		if (!$this->hasSession($sessionId)) {
 			return null;
 		}
 
-		$caps = $this->getDriver()->getCapabilities();
+		$caps = $this->getDriver($sessionId)->getCapabilities();
 		$wsUrl = $caps->getCapability('webSocketUrl');
 
 		return $wsUrl ?: null;
@@ -189,59 +226,77 @@ class SessionManager
 	}
 
 	/**
-	 * Connect the BiDi WebSocket and register with the event loop.
+	 * Connect the BiDi WebSocket for a session and register it with the
+	 * transport's event loop. Each session gets its own BiDi client so
+	 * concurrent sessions' console/network/error logs don't collide.
+	 *
+	 * @param string|null $sessionId Explicit session ID, or null for the
+	 *                                implicit "current" session
 	 */
-	public function connectBidi(): void
+	public function connectBidi(?string $sessionId = null): void
 	{
-		$bidiUrl = $this->getBidiUrl();
-		if ($bidiUrl === null) {
+		$sessionId = $sessionId ?? $this->currentSession;
+		$bidiUrl = $this->getBidiUrl($sessionId);
+		if ($bidiUrl === null || $sessionId === null) {
 			return;
 		}
 
 		try {
-			$this->bidiClient = new BiDiClient();
-			$this->bidiClient->connect($bidiUrl);
+			$bidiClient = new BiDiClient();
+			$bidiClient->connect($bidiUrl);
+			$this->bidiClients[$sessionId] = $bidiClient;
 
 			// Register BiDi stream with transport event loop
-			$stream = $this->bidiClient->getStream();
+			$stream = $bidiClient->getStream();
 			if ($stream !== null && $this->transport !== null) {
-				$bidi = $this->bidiClient;
-				$this->transport->addStream($stream, function ($s) use ($bidi) {
-					$bidi->processEvents();
+				$this->transport->addStream($stream, function ($s) use ($bidiClient) {
+					$bidiClient->processEvents();
 				});
 			}
 
-			fwrite(STDERR, "[selenium-mcp] BiDi connected: {$bidiUrl}\n");
+			fwrite(STDERR, "[selenium-mcp] BiDi connected for session {$sessionId}: {$bidiUrl}\n");
 		} catch (\Exception $e) {
-			fwrite(STDERR, "[selenium-mcp] BiDi connection failed: {$e->getMessage()}\n");
-			$this->bidiClient = null;
+			fwrite(STDERR, "[selenium-mcp] BiDi connection failed for session {$sessionId}: {$e->getMessage()}\n");
+			unset($this->bidiClients[$sessionId]);
 		}
 	}
 
 	/**
-	 * Disconnect BiDi WebSocket and remove from event loop.
+	 * Disconnect a session's BiDi WebSocket and remove it from the event loop.
+	 *
+	 * @param string|null $sessionId Explicit session ID, or null for the
+	 *                                implicit "current" session
 	 */
-	public function disconnectBidi(): void
+	public function disconnectBidi(?string $sessionId = null): void
 	{
-		if ($this->bidiClient === null) {
+		$sessionId = $sessionId ?? $this->currentSession;
+		if ($sessionId === null || !isset($this->bidiClients[$sessionId])) {
 			return;
 		}
 
-		$stream = $this->bidiClient->getStream();
+		$bidiClient = $this->bidiClients[$sessionId];
+		$stream = $bidiClient->getStream();
 		if ($stream !== null && $this->transport !== null) {
 			$this->transport->removeStream($stream);
 		}
 
-		$this->bidiClient->disconnect();
-		$this->bidiClient = null;
+		$bidiClient->disconnect();
+		unset($this->bidiClients[$sessionId]);
 	}
 
 	/**
-	 * Get the active BiDi client (if connected).
+	 * Get the active BiDi client for a session (if connected).
+	 *
+	 * @param string|null $sessionId Explicit session ID, or null for the
+	 *                                implicit "current" session
 	 */
-	public function getBiDiClient(): ?BiDiClient
+	public function getBiDiClient(?string $sessionId = null): ?BiDiClient
 	{
-		return $this->bidiClient;
+		$sessionId = $sessionId ?? $this->currentSession;
+		if ($sessionId === null) {
+			return null;
+		}
+		return $this->bidiClients[$sessionId] ?? null;
 	}
 
 	private function buildCapabilities(string $browser, array $options): DesiredCapabilities

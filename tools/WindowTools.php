@@ -31,14 +31,15 @@ class WindowTools
 			'properties' => [
 				'action' => ['type' => 'string', 'enum' => ['list', 'switch', 'switch_latest', 'close'], 'description' => 'Window action to perform'],
 				'handle' => ['type' => 'string', 'description' => 'Window handle (required for switch)'],
+				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
 			],
 			'required' => ['action'],
 		]
 	)]
-	public function window(string $action, string $handle = ''): ToolResult
+	public function window(string $action, string $handle = '', string $session_id = ''): ToolResult
 	{
 		try {
-			$driver = $this->manager->getDriver();
+			$driver = $this->manager->getDriver($session_id ?: null);
 
 			switch ($action) {
 				case 'list':
@@ -75,7 +76,7 @@ class WindowTools
 						$driver->switchTo()->window($handles[0]);
 						return ToolResult::text("Window closed. Switched to: {$handles[0]}");
 					}
-					$this->manager->closeSession();
+					$this->manager->closeSession($session_id ?: null);
 					return ToolResult::text('Last window closed. Session ended.');
 
 				default:
@@ -97,14 +98,15 @@ class WindowTools
 				'value' => ['type' => 'string', 'description' => 'Value for the locator strategy'],
 				'index' => ['type' => 'number', 'description' => 'Frame index (0-based)'],
 				'timeout' => ['type' => 'number', 'description' => 'Max wait in ms'],
+				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
 			],
 			'required' => ['action'],
 		]
 	)]
-	public function frame(string $action, string $by = '', string $value = '', int $index = -1, int $timeout = 10000): ToolResult
+	public function frame(string $action, string $by = '', string $value = '', int $index = -1, int $timeout = 10000, string $session_id = ''): ToolResult
 	{
 		try {
-			$driver = $this->manager->getDriver();
+			$driver = $this->manager->getDriver($session_id ?: null);
 
 			if ($action === 'default') {
 				$driver->switchTo()->defaultContent();
@@ -139,14 +141,15 @@ class WindowTools
 				'action' => ['type' => 'string', 'enum' => ['accept', 'dismiss', 'get_text', 'send_text'], 'description' => 'Action to perform on the alert'],
 				'text' => ['type' => 'string', 'description' => 'Text to send (required for send_text)'],
 				'timeout' => ['type' => 'number', 'description' => 'Max wait in ms'],
+				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
 			],
 			'required' => ['action'],
 		]
 	)]
-	public function alert(string $action, string $text = '', int $timeout = 5000): ToolResult
+	public function alert(string $action, string $text = '', int $timeout = 5000, string $session_id = ''): ToolResult
 	{
 		try {
-			$driver = $this->manager->getDriver();
+			$driver = $this->manager->getDriver($session_id ?: null);
 			$driver->wait($timeout / 1000)->until(
 				WebDriverExpectedCondition::alertIsPresent()
 			);

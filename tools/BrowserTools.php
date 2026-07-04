@@ -45,10 +45,11 @@ class BrowserTools
 	{
 		try {
 			$sessionId = $this->manager->createSession($browser, $options);
-			$message = "Browser started with session_id: {$sessionId}";
+			$message = "Browser started with session_id: {$sessionId}. " .
+				"Pass this session_id to other tools to target this browser when running multiple concurrent sessions.";
 
-			if ($this->manager->isBidiEnabled()) {
-				$this->manager->connectBidi();
+			if ($this->manager->isBidiEnabled($sessionId)) {
+				$this->manager->connectBidi($sessionId);
 				$message .= ' (BiDi enabled: console logs, JS errors, and network activity are being captured)';
 			}
 
@@ -65,14 +66,15 @@ class BrowserTools
 			'type' => 'object',
 			'properties' => [
 				'url' => ['type' => 'string', 'description' => 'URL to navigate to'],
+				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
 			],
 			'required' => ['url'],
 		]
 	)]
-	public function navigate(string $url): ToolResult
+	public function navigate(string $url, string $session_id = ''): ToolResult
 	{
 		try {
-			$driver = $this->manager->getDriver();
+			$driver = $this->manager->getDriver($session_id ?: null);
 			$driver->get($url);
 			return ToolResult::text("Navigated to {$url}");
 		} catch (\Exception $e) {
@@ -88,13 +90,14 @@ class BrowserTools
 			'type' => 'object',
 			'properties' => [
 				'outputPath' => ['type' => 'string', 'description' => 'Optional path where to save the screenshot. If not provided, returns an image/png content block.'],
+				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
 			],
 		]
 	)]
-	public function take_screenshot(string $outputPath = ''): ToolResult
+	public function take_screenshot(string $outputPath = '', string $session_id = ''): ToolResult
 	{
 		try {
-			$driver = $this->manager->getDriver();
+			$driver = $this->manager->getDriver($session_id ?: null);
 			$screenshot = $driver->takeScreenshot();
 
 			if (!empty($outputPath)) {
@@ -110,13 +113,18 @@ class BrowserTools
 
 	#[McpTool(
 		name: 'close_session',
-		description: 'closes the current browser session',
-		inputSchema: ['type' => 'object']
+		description: 'closes a browser session',
+		inputSchema: [
+			'type' => 'object',
+			'properties' => [
+				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
+			],
+		]
 	)]
-	public function close_session(): ToolResult
+	public function close_session(string $session_id = ''): ToolResult
 	{
 		try {
-			$sessionId = $this->manager->closeSession();
+			$sessionId = $this->manager->closeSession($session_id ?: null);
 			return ToolResult::text("Browser session {$sessionId} closed");
 		} catch (\Exception $e) {
 			return ToolResult::error("Error closing session: {$e->getMessage()}");

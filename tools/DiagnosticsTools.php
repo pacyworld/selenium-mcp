@@ -30,16 +30,18 @@ class DiagnosticsTools
 			'properties' => [
 				'type' => ['type' => 'string', 'enum' => ['console', 'errors', 'network'], 'description' => 'Type of diagnostic data to retrieve'],
 				'clear' => ['type' => 'boolean', 'description' => 'Clear after returning (default: false)'],
+				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
 			],
 			'required' => ['type'],
 		]
 	)]
-	public function diagnostics(string $type, bool $clear = false): ToolResult
+	public function diagnostics(string $type, bool $clear = false, string $session_id = ''): ToolResult
 	{
 		try {
-			$this->manager->getDriver(); // ensure session exists
+			$sessionId = $session_id ?: null;
+			$this->manager->getDriver($sessionId); // ensure session exists
 
-			$bidi = $this->manager->getBiDiClient();
+			$bidi = $this->manager->getBiDiClient($sessionId);
 			if ($bidi === null || !$bidi->isConnected()) {
 				return ToolResult::text('Diagnostics not available (BiDi not supported by this browser/driver)');
 			}

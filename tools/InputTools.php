@@ -30,14 +30,15 @@ class InputTools
 			'type' => 'object',
 			'properties' => [
 				'key' => ['type' => 'string', 'description' => "Key to press (e.g., 'Enter', 'Tab', 'a', etc.)"],
+				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
 			],
 			'required' => ['key'],
 		]
 	)]
-	public function press_key(string $key): ToolResult
+	public function press_key(string $key, string $session_id = ''): ToolResult
 	{
 		try {
-			$driver = $this->manager->getDriver();
+			$driver = $this->manager->getDriver($session_id ?: null);
 			$resolvedKey = $this->resolveKey($key);
 
 			if ($resolvedKey === null) {
@@ -64,14 +65,15 @@ class InputTools
 			'properties' => [
 				'script' => ['type' => 'string', 'description' => 'JavaScript code to execute in the browser'],
 				'args' => ['type' => 'array', 'description' => 'Optional arguments to pass to the script (accessible via arguments[0], arguments[1], etc.)'],
+				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
 			],
 			'required' => ['script'],
 		]
 	)]
-	public function execute_script(string $script, array $args = []): ToolResult
+	public function execute_script(string $script, array $args = [], string $session_id = ''): ToolResult
 	{
 		try {
-			$driver = $this->manager->getDriver();
+			$driver = $this->manager->getDriver($session_id ?: null);
 			$result = $driver->executeScript($script, $args);
 
 			if ($result === null) {
