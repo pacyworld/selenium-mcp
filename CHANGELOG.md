@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.0 — 2026-07-14
+
+### Changed
+- **WebSocket: non-blocking buffered transport** — vendored EnchiladaWebSocket rewritten with fully non-blocking buffered API. Fixes critical bug where a closed TLS fd stayed level-triggered readable, causing infinite reactor spin. Breaking API: `read()`/`readExact()`/`setBlocking()` replaced with `drain()`/`consume()`/`buffered()`/`prepend()`.
+- **BiDiClient** adapted to new WebSocket API — uses `poll()` + `onMessage()` callback pattern instead of blocking `receive()`.
+
+### Fixed
+- **Concurrent browser sessions** — `SessionManager` now tracks sessions and BiDi clients per explicit `session_id` parameter. All 18 tool methods accept optional `session_id` to target a specific browser. Prevents silent session-swap corruption when multiple MCP client sessions share one stdio process.
+
 ## v0.2.1 — 2026-06-30
 
 ### Added
