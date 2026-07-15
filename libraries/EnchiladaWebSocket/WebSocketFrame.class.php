@@ -82,23 +82,27 @@ class WebSocketFrame
 	}
 
 	/**
-	 * Decode a frame header from raw bytes read from the transport.
+	 * Try to decode a complete frame from a byte buffer.
 	 *
-	 * Returns the frame and the number of header bytes consumed.
-	 * The caller must provide the full frame data (header + payload).
+	 * Returns [frame, bytesConsumed] if a complete frame is available,
+	 * or null if the buffer contains an incomplete frame. Never blocks.
 	 *
-	 * For streaming use, call decodeHeader() first, then read payload bytes.
-	 *
-	 * @param WebSocketTransportInterface $transport Transport to read from
-	 * @return self Decoded frame
+	 * @param string $buffer Raw bytes (not modified — caller advances by bytesConsumed)
+	 * @return array{0: self, 1: int}|null [frame, bytesConsumed] or null if incomplete
 	 */
-	public static function readFrom(WebSocketTransportInterface $transport): self
+	public static function tryDecode(string $buffer): ?array
 	{
-		// Read first 2 bytes (minimum frame header)
-		$header = $transport->readExact(2);
+		$bufLen = strlen($buffer);
+		$offset = 0;
 
-		$firstByte = ord($header[0]);
-		$secondByte = ord($header[1]);
+		// Need at least 2 bytes for the minimal header
+		if ($bufLen < 2) {
+			return null;
+		}
+
+		$firstByte = ord($buffer[0]);
+		$secondByte = ord($buffer[1]);
+		$offset = 2;
 
 		$fin = (bool) ($firstByte & 0x80);
 		$opcode = $firstByte & 0x0F;
@@ -107,34 +111,40 @@ class WebSocketFrame
 
 		// Extended payload length
 		if ($length === 126) {
-			$extLen = $transport->readExact(2);
-			$length = unpack('n', $extLen)[1];
+			if ($bufLen < $offset + 2) return null;
+			$length = unpack('n', substr($buffer, $offset, 2))[1];
+			$offset += 2;
 		} elseif ($length === 127) {
-			$extLen = $transport->readExact(8);
-			$length = unpack('J', $extLen)[1];
+			if ($bufLen < $offset + 8) return null;
+			$length = unpack('J', substr($buffer, $offset, 8))[1];
+			$offset += 8;
 		}
 
-		// Masking key (server frames are typically unmasked, but handle both)
+		// Masking key
 		$maskKey = null;
 		if ($masked) {
-			$maskKey = $transport->readExact(4);
+			if ($bufLen < $offset + 4) return null;
+			$maskKey = substr($buffer, $offset, 4);
+			$offset += 4;
 		}
 
 		// Payload
-		$payload = '';
-		if ($length > 0) {
-			$payload = $transport->readExact($length);
-
-			if ($masked && $maskKey !== null) {
-				$unmasked = '';
-				for ($i = 0; $i < $length; $i++) {
-					$unmasked .= chr(ord($payload[$i]) ^ ord($maskKey[$i % 4]));
-				}
-				$payload = $unmasked;
-			}
+		if ($bufLen < $offset + $length) {
+			return null; // Incomplete payload
 		}
 
-		return new self($opcode, $payload, $fin, $masked);
+		$payload = substr($buffer, $offset, $length);
+		$offset += $length;
+
+		if ($masked && $maskKey !== null) {
+			$unmasked = '';
+			for ($i = 0; $i < $length; $i++) {
+				$unmasked .= chr(ord($payload[$i]) ^ ord($maskKey[$i % 4]));
+			}
+			$payload = $unmasked;
+		}
+
+		return [new self($opcode, $payload, $fin, $masked), $offset];
 	}
 
 	/**

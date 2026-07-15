@@ -95,30 +95,4 @@ class WebSocketHandshake
 		return true;
 	}
 
-	/**
-	 * Read the full HTTP response headers from a transport (up to \r\n\r\n).
-	 *
-	 * @param WebSocketTransportInterface $transport
-	 * @return string The complete HTTP response header block
-	 */
-	public static function readResponseHeaders(WebSocketTransportInterface $transport): string
-	{
-		$response = '';
-		$maxHeaderSize = 8192;
-
-		while (strlen($response) < $maxHeaderSize) {
-			$byte = $transport->read(1);
-			if ($byte === '') {
-				usleep(1000);
-				continue;
-			}
-			$response .= $byte;
-
-			if (str_ends_with($response, "\r\n\r\n")) {
-				return $response;
-			}
-		}
-
-		throw new \RuntimeException('WebSocket handshake failed: response headers exceeded 8KB');
-	}
 }

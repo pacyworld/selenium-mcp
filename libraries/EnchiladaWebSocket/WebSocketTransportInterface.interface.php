@@ -2,13 +2,12 @@
 /**
  * Enchilada WebSocket — Transport Interface
  *
- * Defines the I/O contract for WebSocket communication. Implementations
- * provide the actual byte-level read/write operations, allowing the
- * WebSocket protocol layer to remain I/O-agnostic.
+ * Non-blocking I/O contract for WebSocket communication. The transport
+ * owns the connection and an internal read buffer. The WebSocket client
+ * never blocks — it drains available bytes into the buffer and attempts
+ * incremental frame parsing.
  *
  * Built-in: StreamTransport (PHP stream_socket_client)
- * Extensible: implement this interface for ext-ev, ReactPHP, Swoole,
- * kqueue, or any other async I/O mechanism.
  *
  * @package    EnchiladaWebSocket
  * @author     Daniel Morante
@@ -22,6 +21,9 @@ interface WebSocketTransportInterface
 {
 	/**
 	 * Establish a TCP or TLS connection to the given host and port.
+	 * This is the only blocking operation — acceptable for one-time setup.
+	 *
+	 * After connect returns, the stream MUST be in non-blocking mode.
 	 *
 	 * @param string $host Hostname or IP address
 	 * @param int $port Port number
@@ -32,27 +34,35 @@ interface WebSocketTransportInterface
 	public function connect(string $host, int $port, bool $tls = false, float $timeout = 5.0): void;
 
 	/**
-	 * Read up to $length bytes from the connection.
+	 * Read all available bytes from the stream into the internal buffer.
+	 * Never blocks — returns immediately if nothing is available.
 	 *
-	 * In non-blocking mode, returns empty string if no data is available.
-	 * In blocking mode, waits until data arrives or connection closes.
+	 * Call this when the reactor signals readability on getStream().
 	 *
-	 * @param int $length Maximum bytes to read
-	 * @return string Raw bytes read (empty string if non-blocking and no data)
+	 * @return int Number of bytes read (0 if nothing available)
 	 * @throws \RuntimeException on read error or closed connection
 	 */
-	public function read(int $length): string;
+	public function drain(): int;
 
 	/**
-	 * Read exactly $length bytes from the connection (blocking).
+	 * Consume up to $length bytes from the internal read buffer.
+	 * Does NOT touch the stream — only reads from previously drained data.
 	 *
-	 * Loops until all bytes are received or connection closes.
-	 *
-	 * @param int $length Exact number of bytes to read
-	 * @return string Exactly $length bytes
-	 * @throws \RuntimeException if connection closes before all bytes arrive
+	 * @param int $length Maximum bytes to consume
+	 * @return string Bytes from buffer (may be shorter than $length or empty)
 	 */
-	public function readExact(int $length): string;
+	public function consume(int $length): string;
+
+	/**
+	 * Get the number of bytes currently in the read buffer.
+	 */
+	public function buffered(): int;
+
+	/**
+	 * Prepend data to the front of the read buffer.
+	 * Used to put back unconsumed bytes after partial frame parsing.
+	 */
+	public function prepend(string $data): void;
 
 	/**
 	 * Write data to the connection.
@@ -64,9 +74,7 @@ interface WebSocketTransportInterface
 	public function write(string $data): int;
 
 	/**
-	 * Get the underlying stream/socket resource for external event loop integration.
-	 *
-	 * Use this to register the fd with stream_select(), kqueue, ext-ev, etc.
+	 * Get the underlying stream resource for reactor IO watcher registration.
 	 * Returns null if not connected.
 	 *
 	 * @return resource|null The raw PHP stream resource
@@ -82,11 +90,4 @@ interface WebSocketTransportInterface
 	 * Close the connection and release resources.
 	 */
 	public function close(): void;
-
-	/**
-	 * Set blocking mode on the underlying stream.
-	 *
-	 * @param bool $blocking true for blocking I/O, false for non-blocking
-	 */
-	public function setBlocking(bool $blocking): void;
 }

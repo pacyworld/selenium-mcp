@@ -2,9 +2,12 @@
 /**
  * Enchilada WebSocket — Stream Transport
  *
- * Default transport implementation using PHP's stream_socket_client.
- * Works with stream_select() out of the box. Expose getStream() to
- * integrate with any external event loop (kqueue, ext-ev, etc.).
+ * Non-blocking transport using PHP stream_socket_client with an
+ * internal read buffer. drain() pulls available bytes from the stream;
+ * consume() pulls from the buffer. Neither ever blocks.
+ *
+ * The connect() method is the only blocking call (one-time setup).
+ * After connect, the stream is set to non-blocking mode permanently.
  *
  * @package    EnchiladaWebSocket
  * @author     Daniel Morante
@@ -18,6 +21,9 @@ class StreamTransport implements WebSocketTransportInterface
 {
 	/** @var resource|null */
 	private $stream = null;
+
+	/** @var string Internal read buffer */
+	private string $buffer = '';
 
 	public function connect(string $host, int $port, bool $tls = false, float $timeout = 5.0): void
 	{
@@ -42,46 +48,75 @@ class StreamTransport implements WebSocketTransportInterface
 			throw new \RuntimeException("WebSocket connection failed to {$address}: [{$errno}] {$errstr}");
 		}
 
-		stream_set_timeout($this->stream, (int) $timeout, (int) (($timeout - (int) $timeout) * 1000000));
+		// Non-blocking from this point forward
+		stream_set_blocking($this->stream, false);
 	}
 
-	public function read(int $length): string
+	public function drain(): int
 	{
 		if ($this->stream === null) {
 			throw new \RuntimeException('WebSocket transport not connected');
 		}
 
-		$data = @fread($this->stream, $length);
+		$total = 0;
 
-		if ($data === false) {
-			$this->stream = null;
-			throw new \RuntimeException('WebSocket read error');
+		while (true) {
+			$chunk = @fread($this->stream, 65536);
+
+			if ($chunk === false) {
+				@fclose($this->stream);
+				$this->stream = null;
+				throw new \RuntimeException('WebSocket read error');
+			}
+
+			if ($chunk === '') {
+				// Distinguish "no data right now" from peer close (EOF).
+				// At EOF the fd stays permanently readable (level-triggered),
+				// so leaving the stream open would spin the reactor forever.
+				if (feof($this->stream)) {
+					@fclose($this->stream);
+					$this->stream = null;
+					throw new \RuntimeException('WebSocket connection closed by peer');
+				}
+				break; // No more data available (non-blocking)
+			}
+
+			$this->buffer .= $chunk;
+			$total += strlen($chunk);
 		}
 
+		return $total;
+	}
+
+	public function consume(int $length): string
+	{
+		if ($this->buffer === '') {
+			return '';
+		}
+
+		if (strlen($this->buffer) <= $length) {
+			$data = $this->buffer;
+			$this->buffer = '';
+			return $data;
+		}
+
+		$data = substr($this->buffer, 0, $length);
+		$this->buffer = substr($this->buffer, $length);
 		return $data;
 	}
 
-	public function readExact(int $length): string
+	public function buffered(): int
 	{
-		$buffer = '';
-		$remaining = $length;
+		return strlen($this->buffer);
+	}
 
-		while ($remaining > 0) {
-			$chunk = $this->read($remaining);
-
-			if ($chunk === '') {
-				if (!$this->isConnected()) {
-					throw new \RuntimeException("WebSocket connection closed while reading (got " . strlen($buffer) . " of {$length} bytes)");
-				}
-				usleep(1000);
-				continue;
-			}
-
-			$buffer .= $chunk;
-			$remaining -= strlen($chunk);
-		}
-
-		return $buffer;
+	/**
+	 * Prepend data to the front of the read buffer.
+	 * Used to put back unconsumed bytes after partial frame parsing.
+	 */
+	public function prepend(string $data): void
+	{
+		$this->buffer = $data . $this->buffer;
 	}
 
 	public function write(string $data): int
@@ -97,6 +132,7 @@ class StreamTransport implements WebSocketTransportInterface
 			$bytes = @fwrite($this->stream, substr($data, $written));
 
 			if ($bytes === false || $bytes === 0) {
+				@fclose($this->stream);
 				$this->stream = null;
 				throw new \RuntimeException('WebSocket write error');
 			}
@@ -127,14 +163,6 @@ class StreamTransport implements WebSocketTransportInterface
 			@fclose($this->stream);
 			$this->stream = null;
 		}
-	}
-
-	public function setBlocking(bool $blocking): void
-	{
-		if ($this->stream === null) {
-			throw new \RuntimeException('WebSocket transport not connected');
-		}
-
-		stream_set_blocking($this->stream, $blocking);
+		$this->buffer = '';
 	}
 }

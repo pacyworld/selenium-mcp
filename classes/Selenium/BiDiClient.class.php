@@ -6,6 +6,9 @@
  * WebSocket URL and subscribes to log + network events. Buffers
  * events for retrieval by the diagnostics tool.
  *
+ * Uses the non-blocking EnchiladaWebSocket client — no blocking
+ * workarounds needed. poll() drains and parses frames in one call.
+ *
  * @package    SeleniumMCP
  * @author     Daniel Morante
  * @copyright  2026 The Daniel Morante Company, Inc.
@@ -32,6 +35,14 @@ class BiDiClient
 		$this->ws = new WebSocketClient(new StreamTransport());
 		$this->ws->connect($bidiUrl, [], 5.0, false);
 
+		// Route incoming messages to our event handler
+		$this->ws->onMessage(function (string $message) {
+			$event = json_decode($message, true);
+			if ($event !== null) {
+				$this->handleEvent($event);
+			}
+		});
+
 		// Subscribe to log and network events
 		$subscribeMessage = json_encode([
 			'method' => 'session.subscribe',
@@ -46,9 +57,6 @@ class BiDiClient
 		]);
 
 		$this->ws->send($subscribeMessage);
-
-		// Set non-blocking for polling
-		$this->ws->getTransport()->setBlocking(false);
 	}
 
 	/**
@@ -69,7 +77,7 @@ class BiDiClient
 		if ($this->ws === null) {
 			return null;
 		}
-		return $this->ws->getTransport()->getStream();
+		return $this->ws->getStream();
 	}
 
 	/**
@@ -82,29 +90,7 @@ class BiDiClient
 			return;
 		}
 
-		// Set blocking briefly to read the available frame
-		$this->ws->getTransport()->setBlocking(true);
-		stream_set_timeout($this->ws->getTransport()->getStream(), 0, 100000); // 100ms timeout
-
-		try {
-			$message = $this->ws->receive();
-			if ($message === null) {
-				return;
-			}
-
-			$event = json_decode($message, true);
-			if ($event === null) {
-				return;
-			}
-
-			$this->handleEvent($event);
-		} catch (\RuntimeException $e) {
-			// Timeout or connection issue — ignore
-		} finally {
-			if ($this->ws !== null && $this->ws->getTransport()->isConnected()) {
-				$this->ws->getTransport()->setBlocking(false);
-			}
-		}
+		$this->ws->poll();
 	}
 
 	/**
@@ -122,7 +108,7 @@ class BiDiClient
 			return;
 		}
 
-		// Poll up to 50 frames or until no more data pending
+		// Poll up to 50 iterations or until no more data pending
 		for ($i = 0; $i < 50; $i++) {
 			$read = [$stream];
 			$write = $except = null;
@@ -132,7 +118,7 @@ class BiDiClient
 				break;
 			}
 
-			$this->processEvents();
+			$this->ws->poll();
 		}
 	}
 
