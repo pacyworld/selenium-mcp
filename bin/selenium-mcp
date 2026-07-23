@@ -89,6 +89,30 @@ if ($config === null || empty($config['instances'])) {
 
 $sessionManager = new SessionManager($config);
 
+// --- Graceful Lifecycle ---
+
+// Ignore SIGPIPE so a broken stdout (IDE closed its pipe) doesn't kill us instantly.
+// Write errors will surface as fwrite() return values, caught by the transport.
+if (function_exists('pcntl_signal')) {
+	pcntl_signal(SIGPIPE, SIG_IGN);
+	pcntl_signal(SIGTERM, function () use ($sessionManager) {
+		fwrite(STDERR, "[selenium-mcp] SIGTERM received, closing sessions\n");
+		$sessionManager->closeAll();
+		exit(0);
+	});
+	pcntl_signal(SIGINT, function () use ($sessionManager) {
+		fwrite(STDERR, "[selenium-mcp] SIGINT received, closing sessions\n");
+		$sessionManager->closeAll();
+		exit(0);
+	});
+}
+
+// Last-resort cleanup: if the process exits for any reason (EOF, fatal, etc.),
+// attempt to close open browser sessions so they don't linger on the Grid.
+register_shutdown_function(function () use ($sessionManager) {
+	$sessionManager->closeAll();
+});
+
 // --- MCP Server ---
 
 $server = new McpServer(APPLICATION_NAME, APPLICATION_VERSION);
@@ -101,6 +125,13 @@ $server->setInstructions(
 	"- platformName: target a specific Grid node OS (e.g. 'WINDOWS', 'UNIX', 'LINUX', 'MAC').\n" .
 	"- headless: true/false — run browser without a visible window (default depends on node config)."
 );
+
+// When the IDE sends a second initialize (reconnect/restart without killing the process),
+// clean up any existing browser sessions so the new logical session starts fresh.
+$server->onReinitialize(function () use ($sessionManager) {
+	fwrite(STDERR, "[selenium-mcp] Re-initialize: closing existing sessions\n");
+	$sessionManager->closeAll();
+});
 
 // Register tool classes
 $toolClasses = [

@@ -29,6 +29,12 @@ class McpServer
 	/** @var string Server instructions for AI agents (included in initialize response). */
 	private string $instructions = '';
 
+	/** @var bool Whether the server has been initialized at least once. */
+	private bool $initialized = false;
+
+	/** @var callable|null Callback invoked when a re-initialize is received (cleanup prior state). */
+	private $onReinitialize = null;
+
 	/**
 	 * Create a new MCP server instance.
 	 *
@@ -56,6 +62,24 @@ class McpServer
 	public function setInstructions(string $instructions): self
 	{
 		$this->instructions = $instructions;
+		return $this;
+	}
+
+	/**
+	 * Set a callback invoked when the client sends a second initialize request.
+	 *
+	 * Stdio MCP servers are single-connection, but some IDE hosts will send
+	 * a fresh initialize on the same pipe to "restart" the logical session.
+	 * The callback should clean up any stateful resources (browser sessions,
+	 * open connections, etc.) so the server can start fresh without a process
+	 * restart.
+	 *
+	 * @param  callable $callback Invoked with no arguments before re-init response
+	 * @return self               Fluent interface
+	 */
+	public function onReinitialize(callable $callback): self
+	{
+		$this->onReinitialize = $callback;
 		return $this;
 	}
 
@@ -115,6 +139,20 @@ class McpServer
 	 */
 	private function handleInitialize(array $params): array
 	{
+		// If already initialized, invoke the cleanup callback so callers can
+		// reset stateful resources (browser sessions, etc.) before the client
+		// treats this as a fresh connection.
+		if ($this->initialized && $this->onReinitialize !== null) {
+			try {
+				($this->onReinitialize)();
+			} catch (\Throwable $e) {
+				// Non-fatal — best-effort cleanup
+				fwrite(STDERR, "[mcp] Re-initialize cleanup error: {$e->getMessage()}\n");
+			}
+		}
+
+		$this->initialized = true;
+
 		$result = [
 			'protocolVersion' => $this->protocolVersion,
 			'capabilities' => [
