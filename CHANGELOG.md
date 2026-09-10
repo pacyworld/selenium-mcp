@@ -1,10 +1,15 @@
 # Changelog
 
-## Unreleased
+## v0.3.2 — 2026-09-09
 
 ### Changed
 - Enchilada transport split: `EnchiladaMCP` re-vendored as the slim protocol core; the stdio transport moves to the new `Enchilada\Tortilla` library with the composition root wired in `bin/selenium-mcp`. **Comal is vendored** and the transport runs in reactor mode, so per-session BiDi WebSocket streams (registered via `addStream`) keep continuous servicing — the v0.3.0 non-blocking behavior is preserved. `SessionManager` retargets to `Enchilada\Tortilla\StdioTransport` (`addStream`/`removeStream` unchanged).
 - The unused legacy `libraries/EnchiladaHTTP/` directory was replaced by `libraries/HTTP/` (EnchiladaHTTP + EnchiladaMultiHTTP refreshed; the JWT/OAuth classes were never referenced by this project and are dropped).
+
+## v0.3.1 — 2026-07-23
+
+### Added
+- Graceful lifecycle handling for IDE multi-session resilience (EnchiladaMCP re-vendor: `onReinitialize` hook, stdout write-failure detection)
 
 ## v0.3.0 — 2026-07-14
 
