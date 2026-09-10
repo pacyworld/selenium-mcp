@@ -28,6 +28,17 @@ class McpTool
 	 * @param bool|null   $destructiveHint If true, tool may perform destructive updates (only meaningful when readOnlyHint is not true)
 	 * @param bool|null   $idempotentHint  If true, repeated calls with the same arguments have no additional effect
 	 * @param bool|null   $openWorldHint   If true, tool interacts with external/unbounded entities outside a closed system
+	 * @param string|null $renamedFrom     Former tool name if this tool was renamed. Not callable —
+	 *                                     metadata only; used to improve unknown-tool suggestions.
+	 * @param array|null  $outputSchema    JSON Schema for `structuredContent` (MCP 2025-06-18). When
+	 *                                     set, the tool advertises that it returns structured output
+	 *                                     and clients may validate against it. Declared last so that
+	 *                                     existing positional construction is unaffected.
+	 * @param string|null $title           Human-readable display title (MCP 2025-06-18+). Shown by
+	 *                                     client UIs alongside or instead of the tool name
+	 *                                     ("Recall memories" vs `recall`). Appended after all
+	 *                                     earlier parameters so positional construction is
+	 *                                     unaffected.
 	 *
 	 * Annotation hints follow the MCP specification's tool annotations. They are
 	 * advisory only — clients may use them to inform UX decisions (e.g. confirmation
@@ -40,6 +51,9 @@ class McpTool
 		public ?bool $readOnlyHint = null,
 		public ?bool $destructiveHint = null,
 		public ?bool $idempotentHint = null,
-		public ?bool $openWorldHint = null
+		public ?bool $openWorldHint = null,
+		public ?string $renamedFrom = null,
+		public ?array $outputSchema = null,
+		public ?string $title = null
 	) {}
 }

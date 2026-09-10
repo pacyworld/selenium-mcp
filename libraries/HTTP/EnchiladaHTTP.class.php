@@ -62,6 +62,8 @@ class EnchiladaHTTP {
 	protected $plaintext_auth;
 	protected $verify_ssl = true;
 	protected $last_http_code = 0;
+	protected $last_curl_errno = 0;
+	protected $last_curl_error = '';
 
 	/**
 	 * Create a new instance
@@ -186,6 +188,8 @@ class EnchiladaHTTP {
 
 		$result = curl_exec($ch);
 		$this->last_http_code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		$this->last_curl_errno = curl_errno($ch);
+		$this->last_curl_error = curl_error($ch);
 
 		if ($result === false && $this->debug) {
 			// Surface transport-level errors when debugging is enabled
@@ -256,6 +260,24 @@ class EnchiladaHTTP {
 	 */
 	public function getHttpCode(): int {
 		return $this->last_http_code;
+	}
+
+	/**
+	 * Returns the cURL error number from the most recent request.
+	 *
+	 * @return int cURL errno (e.g., 28 for timeout). 0 means the transfer completed without transport error.
+	 */
+	public function getLastCurlErrno(): int {
+		return $this->last_curl_errno;
+	}
+
+	/**
+	 * Returns the cURL error message from the most recent request.
+	 *
+	 * @return string Human-readable transport error (e.g., "Operation timed out after 30000 milliseconds..."), empty when there was no error.
+	 */
+	public function getLastCurlError(): string {
+		return $this->last_curl_error;
 	}
 
 	/**
