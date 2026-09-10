@@ -39,7 +39,8 @@ if (!empty($missing)) {
 }
 
 use EnchiladaMCP\McpServer;
-use EnchiladaMCP\StdioTransport;
+use Enchilada\Tortilla\ComalEventLoop;
+use Enchilada\Tortilla\StdioTransport;
 use Selenium\SessionManager;
 
 // --- Configuration ---
@@ -154,6 +155,20 @@ require_once APPLICATION_ROOT . 'includes' . DIRECTORY_SEPARATOR . 'resources.in
 
 // --- Run ---
 
-$transport = new StdioTransport($server);
+// The application owns the event loop (strict opt-in): injected into
+// the stdio transport for reactor I/O so the per-session BiDi
+// WebSocket streams (registered via addStream from SessionManager)
+// are serviced continuously by loop watchers. Comal is vendored for
+// exactly this; without it the transport resolves to blocking I/O and
+// BiDi events would only be serviced between incoming stdin lines.
+$loop = ComalEventLoop::create();
+
+// Primitives in (handler, progress emitter), notifier back out —
+// only the composition root knows both sides of the contract.
+$transport = new StdioTransport($server->handleRequest(...), $server->tick(...));
+if ($loop !== null) {
+	$transport->setLoop($loop);      // opts into reactor I/O
+}
+$server->setNotifier($transport->sendNotification(...));
 $sessionManager->setTransport($transport);
 $transport->run();

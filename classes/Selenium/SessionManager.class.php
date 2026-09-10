@@ -17,7 +17,7 @@ use Facebook\WebDriver\Remote\RemoteWebDriver;
 use Facebook\WebDriver\Remote\DesiredCapabilities;
 use Facebook\WebDriver\Chrome\ChromeOptions;
 use Facebook\WebDriver\Firefox\FirefoxOptions;
-use EnchiladaMCP\StdioTransport;
+use Enchilada\Tortilla\StdioTransport;
 
 class SessionManager
 {
