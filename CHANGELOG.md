@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- Vendored HTTP library layout moved from `libraries/HTTP/` to eponymous directories (`libraries/EnchiladaHTTP/`, `libraries/EnchiladaMultiHTTP/`) — the layout the framework autoloader resolves natively for legacy global classes (no behavior change; nothing in this project guards those loads)
+
 ## v0.3.2 — 2026-09-09
 
 ### Changed
