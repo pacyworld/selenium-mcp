@@ -24,18 +24,18 @@ class CookieTools
 
 	#[McpTool(
 		name: 'add_cookie',
-		description: "adds a cookie to the current browser session. The browser must be on a page from the cookie's domain before setting it.",
+		description: "Add a cookie. The browser must already be on a page from the cookie's domain.",
 		inputSchema: [
 			'type' => 'object',
 			'properties' => [
-				'name' => ['type' => 'string', 'description' => 'Name of the cookie'],
-				'value' => ['type' => 'string', 'description' => 'Value of the cookie'],
-				'domain' => ['type' => 'string', 'description' => 'Domain the cookie is visible to'],
-				'path' => ['type' => 'string', 'description' => 'Path the cookie is visible to'],
-				'secure' => ['type' => 'boolean', 'description' => 'Whether the cookie is a secure cookie'],
-				'httpOnly' => ['type' => 'boolean', 'description' => 'Whether the cookie is HTTP only'],
-				'expiry' => ['type' => 'number', 'description' => 'Expiry date of the cookie as a Unix timestamp (seconds since epoch)'],
-				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
+				'name' => ['type' => 'string'],
+				'value' => ['type' => 'string'],
+				'domain' => ['type' => 'string'],
+				'path' => ['type' => 'string'],
+				'secure' => ['type' => 'boolean'],
+				'httpOnly' => ['type' => 'boolean'],
+				'expiry' => ['type' => 'number', 'description' => 'Unix timestamp (seconds)'],
+				'session_id' => ['type' => 'string', 'description' => 'From start_browser; default most recent'],
 			],
 			'required' => ['name', 'value'],
 		]
@@ -70,12 +70,12 @@ class CookieTools
 	#[McpTool(
 		name: 'get_cookies',
 		readOnlyHint: true,
-		description: 'retrieves cookies from the current browser session. Returns all cookies or a specific cookie by name.',
+		description: 'Get one cookie by name, or all cookies.',
 		inputSchema: [
 			'type' => 'object',
 			'properties' => [
-				'name' => ['type' => 'string', 'description' => 'Name of a specific cookie to retrieve. If omitted, all cookies are returned.'],
-				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
+				'name' => ['type' => 'string', 'description' => 'Omit for all cookies'],
+				'session_id' => ['type' => 'string', 'description' => 'From start_browser; default most recent'],
 			],
 		]
 	)]
@@ -101,12 +101,12 @@ class CookieTools
 
 	#[McpTool(
 		name: 'delete_cookie',
-		description: 'deletes cookies from the current browser session. Can delete a specific cookie by name or all cookies.',
+		description: 'Delete one cookie by name, or all cookies.',
 		inputSchema: [
 			'type' => 'object',
 			'properties' => [
-				'name' => ['type' => 'string', 'description' => 'Name of the cookie to delete. If omitted, all cookies are deleted.'],
-				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
+				'name' => ['type' => 'string', 'description' => 'Omit to delete all cookies'],
+				'session_id' => ['type' => 'string', 'description' => 'From start_browser; default most recent'],
 			],
 		]
 	)]

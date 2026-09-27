@@ -24,13 +24,13 @@ class DiagnosticsTools
 	#[McpTool(
 		name: 'diagnostics',
 		readOnlyHint: true,
-		description: 'retrieves browser diagnostics (console logs, JS errors, or network activity) captured via WebDriver BiDi',
+		description: 'Get captured console logs, JS errors, or network activity (requires WebDriver BiDi support).',
 		inputSchema: [
 			'type' => 'object',
 			'properties' => [
-				'type' => ['type' => 'string', 'enum' => ['console', 'errors', 'network'], 'description' => 'Type of diagnostic data to retrieve'],
-				'clear' => ['type' => 'boolean', 'description' => 'Clear after returning (default: false)'],
-				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
+				'type' => ['type' => 'string', 'enum' => ['console', 'errors', 'network']],
+				'clear' => ['type' => 'boolean', 'description' => 'Clear after returning (default false)'],
+				'session_id' => ['type' => 'string', 'description' => 'From start_browser; default most recent'],
 			],
 			'required' => ['type'],
 		]

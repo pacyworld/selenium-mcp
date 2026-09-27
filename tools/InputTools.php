@@ -25,12 +25,12 @@ class InputTools
 
 	#[McpTool(
 		name: 'press_key',
-		description: 'simulates pressing a keyboard key',
+		description: 'Press a key on the focused element.',
 		inputSchema: [
 			'type' => 'object',
 			'properties' => [
-				'key' => ['type' => 'string', 'description' => "Key to press (e.g., 'Enter', 'Tab', 'a', etc.)"],
-				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
+				'key' => ['type' => 'string', 'description' => 'Single character or key name: Enter, Tab, Escape, Backspace, Delete, Space, Up/Down/Left/Right, Home, End, Page_Up, Page_Down, F1-F12, Control, Alt, Shift, Meta'],
+				'session_id' => ['type' => 'string', 'description' => 'From start_browser; default most recent'],
 			],
 			'required' => ['key'],
 		]
@@ -59,13 +59,13 @@ class InputTools
 
 	#[McpTool(
 		name: 'execute_script',
-		description: "executes JavaScript in the browser and returns the result. Use for advanced interactions not covered by other tools (e.g., drag and drop, scrolling, reading computed styles, manipulating the DOM directly). Also useful for batch-reading multiple element values/states in a single call instead of multiple get_element_attribute calls.",
+		description: 'Run JavaScript in the page and return its result. Use for actions other tools lack (drag and drop, scrolling, computed styles, DOM edits) or to read many element values in one call.',
 		inputSchema: [
 			'type' => 'object',
 			'properties' => [
-				'script' => ['type' => 'string', 'description' => 'JavaScript code to execute in the browser'],
-				'args' => ['type' => 'array', 'description' => 'Optional arguments to pass to the script (accessible via arguments[0], arguments[1], etc.)'],
-				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
+				'script' => ['type' => 'string', 'description' => 'Function body; use return to yield a value'],
+				'args' => ['type' => 'array', 'description' => 'Available as arguments[0], arguments[1], ...'],
+				'session_id' => ['type' => 'string', 'description' => 'From start_browser; default most recent'],
 			],
 			'required' => ['script'],
 		]

@@ -4,6 +4,7 @@
 
 ### Changed
 - Vendored HTTP library layout moved from `libraries/HTTP/` to eponymous directories (`libraries/EnchiladaHTTP/`, `libraries/EnchiladaMultiHTTP/`) — the layout the framework autoloader resolves natively for legacy global classes (no behavior change; nothing in this project guards those loads)
+- Tool and parameter descriptions compacted to cut `tools/list` size (2,931 -> 2,499 Qwen tokens); element/dialog wait defaults and `press_key` key names are now stated
 
 ## v0.3.2 — 2026-09-09
 

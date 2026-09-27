@@ -23,18 +23,18 @@ class BrowserTools
 
 	#[McpTool(
 		name: 'start_browser',
-		description: 'launches browser',
+		description: 'Launch a browser and return its session_id.',
 		inputSchema: [
 			'type' => 'object',
 			'properties' => [
-				'browser' => ['type' => 'string', 'enum' => ['chrome', 'firefox', 'edge', 'safari'], 'description' => 'Browser to launch (chrome, firefox, edge, or safari)'],
+				'browser' => ['type' => 'string', 'enum' => ['chrome', 'firefox', 'edge', 'safari'], ],
 				'options' => [
 					'type' => 'object',
 					'properties' => [
-						'headless' => ['type' => 'boolean', 'description' => 'Run browser in headless mode'],
-						'arguments' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Additional browser arguments'],
+						'headless' => ['type' => 'boolean'],
+						'arguments' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Extra browser command-line arguments'],
 						'acceptInsecureCerts' => ['type' => 'boolean', 'description' => 'Accept invalid/self-signed TLS certificates'],
-						'platformName' => ['type' => 'string', 'description' => 'Target platform for Grid routing (e.g. WINDOWS, UNIX, LINUX, MAC)'],
+						'platformName' => ['type' => 'string', 'description' => 'Grid routing, e.g. WINDOWS, LINUX, MAC'],
 					],
 				],
 			],
@@ -61,12 +61,12 @@ class BrowserTools
 
 	#[McpTool(
 		name: 'navigate',
-		description: 'navigates to a URL',
+		description: 'Navigate to a URL.',
 		inputSchema: [
 			'type' => 'object',
 			'properties' => [
-				'url' => ['type' => 'string', 'description' => 'URL to navigate to'],
-				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
+				'url' => ['type' => 'string'],
+				'session_id' => ['type' => 'string', 'description' => 'From start_browser; default most recent'],
 			],
 			'required' => ['url'],
 		]
@@ -85,12 +85,12 @@ class BrowserTools
 	#[McpTool(
 		name: 'take_screenshot',
 		readOnlyHint: true,
-		description: "captures a screenshot of the current page. Prefer using the accessibility://current resource for understanding page content. Use get_element_text, get_element_attribute, or execute_script to verify element state. Only use screenshots when visual layout or styling needs to be verified.",
+		description: 'Screenshot the current page. Use only to verify visual layout; for content read the accessibility://current resource, for element state use get_element_text/get_element_attribute/execute_script.',
 		inputSchema: [
 			'type' => 'object',
 			'properties' => [
-				'outputPath' => ['type' => 'string', 'description' => 'Optional path where to save the screenshot. If not provided, returns an image/png content block.'],
-				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
+				'outputPath' => ['type' => 'string', 'description' => 'Save to this server-side path; if omitted, returns a PNG image'],
+				'session_id' => ['type' => 'string', 'description' => 'From start_browser; default most recent'],
 			],
 		]
 	)]
@@ -113,11 +113,11 @@ class BrowserTools
 
 	#[McpTool(
 		name: 'close_session',
-		description: 'closes a browser session',
+		description: 'Close a browser session.',
 		inputSchema: [
 			'type' => 'object',
 			'properties' => [
-				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
+				'session_id' => ['type' => 'string', 'description' => 'From start_browser; default most recent'],
 			],
 		]
 	)]
