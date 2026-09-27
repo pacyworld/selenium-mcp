@@ -1,14 +1,25 @@
 # Changelog
 
-## Unreleased
+## v0.3.5 — 2026-09-27
+
+### Changed
+- Tool and parameter descriptions compacted to cut `tools/list` size (2,931 -> 2,517 Qwen tokens); element/dialog wait defaults, `press_key` key names and the `acceptInsecureCerts`/`headless` guidance from the server instructions are now stated on the tools
+
+## v0.3.4 — 2026-09-13
+
+### Fixed
+- Re-vendored `EnchiladaMultiHTTP`: a response body that fails JSON decoding (e.g. a proxy error page) now completes the request with an error instead of leaving the await loop spinning forever
+- Re-vendored Tortilla `StdioTransport`: in-flight requests are answered before stdin EOF is honoured, and a regular-file stdin degrades to blocking mode (`server < request.json` no longer hangs)
+
+## v0.3.3 — 2026-09-13
+
+### Fixed
+- Re-vendored Tortilla `StdioTransport` 8367bb8: bounded blocking-mode stdin read retries (`feof()` never reports true on a closed Windows pipe, which hot-looped the server)
+
+## v0.3.2 — 2026-09-10
 
 ### Changed
 - Vendored HTTP library layout moved from `libraries/HTTP/` to eponymous directories (`libraries/EnchiladaHTTP/`, `libraries/EnchiladaMultiHTTP/`) — the layout the framework autoloader resolves natively for legacy global classes (no behavior change; nothing in this project guards those loads)
-- Tool and parameter descriptions compacted to cut `tools/list` size (2,931 -> 2,517 Qwen tokens); element/dialog wait defaults, `press_key` key names and the `acceptInsecureCerts`/`headless` guidance from the server instructions are now stated on the tools
-
-## v0.3.2 — 2026-09-09
-
-### Changed
 - Enchilada transport split: `EnchiladaMCP` re-vendored as the slim protocol core; the stdio transport moves to the new `Enchilada\Tortilla` library with the composition root wired in `bin/selenium-mcp`. **Comal is vendored** and the transport runs in reactor mode, so per-session BiDi WebSocket streams (registered via `addStream`) keep continuous servicing — the v0.3.0 non-blocking behavior is preserved. `SessionManager` retargets to `Enchilada\Tortilla\StdioTransport` (`addStream`/`removeStream` unchanged).
 - The unused legacy `libraries/EnchiladaHTTP/` directory was replaced by `libraries/HTTP/` (EnchiladaHTTP + EnchiladaMultiHTTP refreshed; the JWT/OAuth classes were never referenced by this project and are dropped).
 
