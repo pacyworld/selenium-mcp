@@ -26,15 +26,15 @@ class ElementTools
 
 	#[McpTool(
 		name: 'interact',
-		description: 'performs a mouse action on an element',
+		description: 'Perform a mouse action on an element.',
 		inputSchema: [
 			'type' => 'object',
 			'properties' => [
-				'action' => ['type' => 'string', 'enum' => ['click', 'doubleclick', 'rightclick', 'hover'], 'description' => 'Mouse action to perform'],
-				'by' => ['type' => 'string', 'enum' => ['id', 'css', 'xpath', 'name', 'tag', 'class'], 'description' => 'Locator strategy to find element'],
-				'value' => ['type' => 'string', 'description' => 'Value for the locator strategy'],
-				'timeout' => ['type' => 'number', 'description' => 'Maximum time to wait for element in milliseconds'],
-				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
+				'action' => ['type' => 'string', 'enum' => ['click', 'doubleclick', 'rightclick', 'hover']],
+				'by' => ['type' => 'string', 'enum' => ['id', 'css', 'xpath', 'name', 'tag', 'class']],
+				'value' => ['type' => 'string', 'description' => 'Locator value'],
+				'timeout' => ['type' => 'number', 'description' => 'Element wait in ms (default 10000)'],
+				'session_id' => ['type' => 'string', 'description' => 'From start_browser; default most recent'],
 			],
 			'required' => ['action', 'by', 'value'],
 		]
@@ -78,15 +78,15 @@ class ElementTools
 
 	#[McpTool(
 		name: 'send_keys',
-		description: 'sends keys to an element, aka typing. Clears the field first.',
+		description: 'Type text into an element; clears the field first.',
 		inputSchema: [
 			'type' => 'object',
 			'properties' => [
-				'by' => ['type' => 'string', 'enum' => ['id', 'css', 'xpath', 'name', 'tag', 'class'], 'description' => 'Locator strategy to find element'],
-				'value' => ['type' => 'string', 'description' => 'Value for the locator strategy'],
-				'text' => ['type' => 'string', 'description' => 'Text to enter into the element'],
-				'timeout' => ['type' => 'number', 'description' => 'Maximum time to wait for element in milliseconds'],
-				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
+				'by' => ['type' => 'string', 'enum' => ['id', 'css', 'xpath', 'name', 'tag', 'class']],
+				'value' => ['type' => 'string', 'description' => 'Locator value'],
+				'text' => ['type' => 'string'],
+				'timeout' => ['type' => 'number', 'description' => 'Element wait in ms (default 10000)'],
+				'session_id' => ['type' => 'string', 'description' => 'From start_browser; default most recent'],
 			],
 			'required' => ['by', 'value', 'text'],
 		]
@@ -110,14 +110,14 @@ class ElementTools
 	#[McpTool(
 		name: 'get_element_text',
 		readOnlyHint: true,
-		description: 'gets the text content of an element',
+		description: 'Get the text content of an element.',
 		inputSchema: [
 			'type' => 'object',
 			'properties' => [
-				'by' => ['type' => 'string', 'enum' => ['id', 'css', 'xpath', 'name', 'tag', 'class'], 'description' => 'Locator strategy to find element'],
-				'value' => ['type' => 'string', 'description' => 'Value for the locator strategy'],
-				'timeout' => ['type' => 'number', 'description' => 'Maximum time to wait for element in milliseconds'],
-				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
+				'by' => ['type' => 'string', 'enum' => ['id', 'css', 'xpath', 'name', 'tag', 'class']],
+				'value' => ['type' => 'string', 'description' => 'Locator value'],
+				'timeout' => ['type' => 'number', 'description' => 'Element wait in ms (default 10000)'],
+				'session_id' => ['type' => 'string', 'description' => 'From start_browser; default most recent'],
 			],
 			'required' => ['by', 'value'],
 		]
@@ -140,15 +140,15 @@ class ElementTools
 	#[McpTool(
 		name: 'get_element_attribute',
 		readOnlyHint: true,
-		description: "gets the value of an attribute on an element. Use this to verify element state. Prefer this over screenshots for validation.",
+		description: 'Get an attribute value of an element. Prefer this over screenshots to verify element state.',
 		inputSchema: [
 			'type' => 'object',
 			'properties' => [
-				'by' => ['type' => 'string', 'enum' => ['id', 'css', 'xpath', 'name', 'tag', 'class'], 'description' => 'Locator strategy to find element'],
-				'value' => ['type' => 'string', 'description' => 'Value for the locator strategy'],
-				'attribute' => ['type' => 'string', 'description' => "Name of the attribute to get (e.g., 'href', 'value', 'class')"],
-				'timeout' => ['type' => 'number', 'description' => 'Maximum time to wait for element in milliseconds'],
-				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
+				'by' => ['type' => 'string', 'enum' => ['id', 'css', 'xpath', 'name', 'tag', 'class']],
+				'value' => ['type' => 'string', 'description' => 'Locator value'],
+				'attribute' => ['type' => 'string', 'description' => 'e.g. href, value, class'],
+				'timeout' => ['type' => 'number', 'description' => 'Element wait in ms (default 10000)'],
+				'session_id' => ['type' => 'string', 'description' => 'From start_browser; default most recent'],
 			],
 			'required' => ['by', 'value', 'attribute'],
 		]
@@ -170,15 +170,15 @@ class ElementTools
 
 	#[McpTool(
 		name: 'upload_file',
-		description: 'uploads a file using a file input element',
+		description: 'Upload a file through a file input element.',
 		inputSchema: [
 			'type' => 'object',
 			'properties' => [
-				'by' => ['type' => 'string', 'enum' => ['id', 'css', 'xpath', 'name', 'tag', 'class'], 'description' => 'Locator strategy to find element'],
-				'value' => ['type' => 'string', 'description' => 'Value for the locator strategy'],
-				'filePath' => ['type' => 'string', 'description' => 'Absolute path to the file to upload'],
-				'timeout' => ['type' => 'number', 'description' => 'Maximum time to wait for element in milliseconds'],
-				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
+				'by' => ['type' => 'string', 'enum' => ['id', 'css', 'xpath', 'name', 'tag', 'class']],
+				'value' => ['type' => 'string', 'description' => 'Locator value'],
+				'filePath' => ['type' => 'string', 'description' => 'Absolute path'],
+				'timeout' => ['type' => 'number', 'description' => 'Element wait in ms (default 10000)'],
+				'session_id' => ['type' => 'string', 'description' => 'From start_browser; default most recent'],
 			],
 			'required' => ['by', 'value', 'filePath'],
 		]

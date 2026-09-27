@@ -25,13 +25,13 @@ class WindowTools
 
 	#[McpTool(
 		name: 'window',
-		description: 'manages browser windows and tabs',
+		description: 'Manage windows/tabs. close switches to another window, or ends the session when it was the last.',
 		inputSchema: [
 			'type' => 'object',
 			'properties' => [
-				'action' => ['type' => 'string', 'enum' => ['list', 'switch', 'switch_latest', 'close'], 'description' => 'Window action to perform'],
-				'handle' => ['type' => 'string', 'description' => 'Window handle (required for switch)'],
-				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
+				'action' => ['type' => 'string', 'enum' => ['list', 'switch', 'switch_latest', 'close']],
+				'handle' => ['type' => 'string', 'description' => 'Required for switch (from list)'],
+				'session_id' => ['type' => 'string', 'description' => 'From start_browser; default most recent'],
 			],
 			'required' => ['action'],
 		]
@@ -89,16 +89,16 @@ class WindowTools
 
 	#[McpTool(
 		name: 'frame',
-		description: 'switches focus to a frame or back to the main page',
+		description: 'Switch into a frame (by index, or by/value locator) or back to the main page (default).',
 		inputSchema: [
 			'type' => 'object',
 			'properties' => [
-				'action' => ['type' => 'string', 'enum' => ['switch', 'default'], 'description' => 'Frame action to perform'],
-				'by' => ['type' => 'string', 'enum' => ['id', 'css', 'xpath', 'name', 'tag', 'class'], 'description' => 'Locator strategy for frame element'],
-				'value' => ['type' => 'string', 'description' => 'Value for the locator strategy'],
-				'index' => ['type' => 'number', 'description' => 'Frame index (0-based)'],
-				'timeout' => ['type' => 'number', 'description' => 'Max wait in ms'],
-				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
+				'action' => ['type' => 'string', 'enum' => ['switch', 'default']],
+				'by' => ['type' => 'string', 'enum' => ['id', 'css', 'xpath', 'name', 'tag', 'class']],
+				'value' => ['type' => 'string', 'description' => 'Locator value'],
+				'index' => ['type' => 'number', 'description' => '0-based; takes precedence over by/value'],
+				'timeout' => ['type' => 'number', 'description' => 'Element wait in ms (default 10000)'],
+				'session_id' => ['type' => 'string', 'description' => 'From start_browser; default most recent'],
 			],
 			'required' => ['action'],
 		]
@@ -134,14 +134,14 @@ class WindowTools
 
 	#[McpTool(
 		name: 'alert',
-		description: 'handles a browser alert, confirm, or prompt dialog',
+		description: 'Handle an alert, confirm, or prompt dialog. send_text types into a prompt and accepts it.',
 		inputSchema: [
 			'type' => 'object',
 			'properties' => [
-				'action' => ['type' => 'string', 'enum' => ['accept', 'dismiss', 'get_text', 'send_text'], 'description' => 'Action to perform on the alert'],
-				'text' => ['type' => 'string', 'description' => 'Text to send (required for send_text)'],
-				'timeout' => ['type' => 'number', 'description' => 'Max wait in ms'],
-				'session_id' => ['type' => 'string', 'description' => 'Session ID from start_browser (optional; targets the most recently started session if omitted)'],
+				'action' => ['type' => 'string', 'enum' => ['accept', 'dismiss', 'get_text', 'send_text']],
+				'text' => ['type' => 'string', 'description' => 'Required for send_text'],
+				'timeout' => ['type' => 'number', 'description' => 'Dialog wait in ms (default 5000)'],
+				'session_id' => ['type' => 'string', 'description' => 'From start_browser; default most recent'],
 			],
 			'required' => ['action'],
 		]
