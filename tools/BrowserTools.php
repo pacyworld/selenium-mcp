@@ -31,9 +31,9 @@ class BrowserTools
 				'options' => [
 					'type' => 'object',
 					'properties' => [
-						'headless' => ['type' => 'boolean'],
+						'headless' => ['type' => 'boolean', 'description' => 'Default depends on the Grid node'],
 						'arguments' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Extra browser command-line arguments'],
-						'acceptInsecureCerts' => ['type' => 'boolean', 'description' => 'Accept invalid/self-signed TLS certificates'],
+						'acceptInsecureCerts' => ['type' => 'boolean', 'description' => 'Required for self-signed/private-CA sites; without it navigation hangs'],
 						'platformName' => ['type' => 'string', 'description' => 'Grid routing, e.g. WINDOWS, LINUX, MAC'],
 					],
 				],
