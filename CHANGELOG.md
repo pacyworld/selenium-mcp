@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-22
+
 ### Changed
 - Re-vendored the Enchilada libraries onto the merged EnchiladaCurl split (Extras master 48fc849): `EnchiladaMultiHTTP` now rides the abstract `EnchiladaCurl` base; `EnchiladaHTTP`, `EnchiladaWebSocket`, `EnchiladaMCP`, Tortilla and Comal refreshed from canonical master; Tortilla gains `OAuthCallbackHelper.php`; EnchiladaMCP gains `ElicitationRequired`, `McpComplete`, `McpPrompt` and `mcp.inc.php`
 
