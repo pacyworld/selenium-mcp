@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- Re-vendored the Enchilada libraries onto the merged EnchiladaCurl split (Extras master 48fc849): `EnchiladaMultiHTTP` now rides the abstract `EnchiladaCurl` base; `EnchiladaHTTP`, `EnchiladaWebSocket`, `EnchiladaMCP`, Tortilla and Comal refreshed from canonical master; Tortilla gains `OAuthCallbackHelper.php`; EnchiladaMCP gains `ElicitationRequired`, `McpComplete`, `McpPrompt` and `mcp.inc.php`
+
+### Added
+- New vendored libraries `libraries/EnchiladaCurl/` and `libraries/EnchiladaWorkerHTTP/` (from Extras HTTP/)
+- `tests/enchilada-curl/`: the curl behaviour suite and `lint_curl_door.php` vendored from engineering-docs; CI runs both against `libraries/` on FreeBSD and Windows
+
 ## v0.3.5 — 2026-09-27
 
 ### Changed
