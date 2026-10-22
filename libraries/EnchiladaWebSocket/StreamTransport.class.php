@@ -9,6 +9,12 @@
  * The connect() method is the only blocking call (one-time setup).
  * After connect, the stream is set to non-blocking mode permanently.
  *
+ * TLS context options may be supplied via the constructor or
+ * setContextOptions() before connect(); they are merged into the 'ssl'
+ * section of the stream context (e.g. verify_peer, capture_peer_cert,
+ * peer_name). When capture_peer_cert is enabled, getPeerCertificate()
+ * returns the peer's certificate after connect().
+ *
  * @package    EnchiladaWebSocket
  * @author     Daniel Morante
  * @copyright  2026 The Daniel Morante Company, Inc.
@@ -25,12 +31,48 @@ class StreamTransport implements WebSocketTransportInterface
 	/** @var string Internal read buffer */
 	private string $buffer = '';
 
+	/** @var array Options merged into the 'ssl' stream context section */
+	private array $contextOptions;
+
+	/**
+	 * @param array $contextOptions 'ssl' stream context options, e.g.
+	 *        ['verify_peer' => false, 'capture_peer_cert' => true]
+	 */
+	public function __construct(array $contextOptions = [])
+	{
+		$this->contextOptions = $contextOptions;
+	}
+
+	/**
+	 * Replace the 'ssl' context options. Must be called before connect().
+	 */
+	public function setContextOptions(array $contextOptions): void
+	{
+		$this->contextOptions = $contextOptions;
+	}
+
+	/**
+	 * The peer's TLS certificate as an OpenSSL X509 resource, captured
+	 * when 'capture_peer_cert' was enabled on the context. Null when not
+	 * connected or not captured.
+	 *
+	 * @return \OpenSSLCertificate|resource|null
+	 */
+	public function getPeerCertificate(): mixed
+	{
+		if ($this->stream === null) {
+			return null;
+		}
+		$params = stream_context_get_params($this->stream);
+		return $params['options']['ssl']['peer_certificate'] ?? null;
+	}
+
 	public function connect(string $host, int $port, bool $tls = false, float $timeout = 5.0): void
 	{
 		$scheme = $tls ? 'tls' : 'tcp';
 		$address = "{$scheme}://{$host}:{$port}";
 
-		$context = stream_context_create();
+		$context = stream_context_create(['ssl' => $this->contextOptions]);
 		$errno = 0;
 		$errstr = '';
 
@@ -64,6 +106,21 @@ class StreamTransport implements WebSocketTransportInterface
 			$chunk = @fread($this->stream, 65536);
 
 			if ($chunk === false) {
+				if (feof($this->stream)) {
+					@fclose($this->stream);
+					$this->stream = null;
+					throw new \RuntimeException('WebSocket connection closed by peer');
+				}
+				// fread can also return false when the stream would
+				// block: on TLS sockets a stream_set_timeout() expiry is
+				// reported this way, and non-blocking SSL reads return
+				// false rather than '' when no plaintext is available.
+				// Neither is an error — the caller retries via its own
+				// deadline.
+				$meta = stream_get_meta_data($this->stream);
+				if (($meta['timed_out'] ?? false) || !($meta['blocked'] ?? true)) {
+					break;
+				}
 				@fclose($this->stream);
 				$this->stream = null;
 				throw new \RuntimeException('WebSocket read error');

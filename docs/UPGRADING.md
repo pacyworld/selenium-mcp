@@ -13,8 +13,10 @@ Libraries, vendored byte-identical from canonical upstream **master**
 | `libraries/EnchiladaMCP/` | `Enchilada/Extras` MCP/ | Protocol core. No I/O, no loop, no framework deps. |
 | `libraries/Enchilada/Tortilla/` | `Enchilada/Tortilla` src/ | Wire transports, `EventLoop` port, `RequestEra`. |
 | `libraries/Enchilada/Comal/` | `Enchilada/Comal` | Reactor (kqueue/ev). Presence opts stdio into reactor mode. |
-| `libraries/EnchiladaHTTP/` + `EnchiladaMultiHTTP/` | Extras HTTP/ | curl engines (legacy globals, eponymous dirs). **Frozen.** |
+| `libraries/EnchiladaCurl/` + `EnchiladaMultiHTTP/` + `EnchiladaWorkerHTTP/` | Extras HTTP/ | curl clients on the abstract `EnchiladaCurl` base (legacy globals, eponymous dirs). Vendor together with Tortilla. |
+| `libraries/EnchiladaHTTP/` | Extras HTTP/ | Standalone blocking client (legacy global, eponymous dir). |
 | `libraries/EnchiladaWebSocket/` | Extras WebSocket/ | WebSocket client for the Selenium/WebDriver debug channel. |
+| `tests/enchilada-curl/` | `daniel/engineering-docs` `enchilada-extras/curl-behaviour-suite/` | curl behaviour suite + door lint; CI runs it against `libraries/`. Re-vendor together with HTTP/. |
 
 ## 2. Non-negotiables
 
@@ -43,8 +45,11 @@ Libraries, vendored byte-identical from canonical upstream **master**
      in-flight async connect reads `ENOTCONN` from
      `stream_socket_get_name` — re-probe, never treat as failure.
      (mail-mcp#27 review.)
-   - `EnchiladaHTTP`/`EnchiladaMultiHTTP` are frozen: no MCP hooks, no
-     behavior changes.
+   - `EnchiladaHTTP` is a standalone blocking client;
+     `EnchiladaMultiHTTP`/`EnchiladaWorkerHTTP` ride the abstract
+     `EnchiladaCurl` base: no MCP hooks, no local behavior changes;
+     fixes land upstream in Extras HTTP/ and the set re-vendors
+     together with Tortilla.
 
 ## 3. This server's wiring
 
